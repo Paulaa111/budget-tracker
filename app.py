@@ -3,8 +3,8 @@ import pandas as pd
 from datetime import date
 import calendar
 import base64
-import json
 from pathlib import Path
+
 import gspread
 from google.oauth2.service_account import Credentials
 
@@ -17,18 +17,16 @@ st.set_page_config(
 )
 
 # ── constants ─────────────────────────────────────────────────────────────────
-VAT_RATE     = 0.23
-SHEET_ID     = "1l_fX5ydioIsKVyhitrnR3rcdf6RyZOq-x6oQ3mhP9uQ"
-SCOPES       = ["https://www.googleapis.com/auth/spreadsheets"]
+VAT_RATE  = 0.23
+SHEET_ID  = "1l_fX5ydioIsKVyhitrnR3rcdf6RyZOq-x6oQ3mhP9uQ"
+SCOPES    = ["https://www.googleapis.com/auth/spreadsheets"]
 
-# ── Google Sheets connection ──────────────────────────────────────────────────
+# ── Google Sheets ─────────────────────────────────────────────────────────────
 @st.cache_resource
 def get_gsheet():
     creds = Credentials.from_service_account_info(
-        st.secrets["gcp_service_account"], scopes=SCOPES
-    )
-    client = gspread.authorize(creds)
-    return client.open_by_key(SHEET_ID)
+        st.secrets["gcp_service_account"], scopes=SCOPES)
+    return gspread.authorize(creds).open_by_key(SHEET_ID)
 
 def load_clients() -> pd.DataFrame:
     try:
@@ -51,17 +49,39 @@ def load_budgets() -> pd.DataFrame:
         return pd.DataFrame(columns=["klient","miesiac","budzet_total"])
 
 def save_client(nazwa, google_id, meta_id, typ):
-    ws = get_gsheet().worksheet("klienci")
-    ws.append_row([nazwa, google_id, meta_id, typ])
+    get_gsheet().worksheet("klienci").append_row([nazwa, google_id, meta_id, typ])
 
 def save_budget(klient, miesiac, budzet_total):
     ws  = get_gsheet().worksheet("budzety")
-    all = ws.get_all_records()
-    for i, row in enumerate(all):
+    all_rows = ws.get_all_records()
+    for i, row in enumerate(all_rows):
         if row["klient"] == klient and row["miesiac"] == miesiac:
             ws.update(f"A{i+2}:C{i+2}", [[klient, miesiac, budzet_total]])
             return
     ws.append_row([klient, miesiac, budzet_total])
+
+def save_spend(klient, miesiac, google_spend, meta_spend):
+    try:
+        ws = get_gsheet().worksheet("wydatki")
+    except:
+        get_gsheet().add_worksheet(title="wydatki", rows=1000, cols=5)
+        ws = get_gsheet().worksheet("wydatki")
+        ws.append_row(["klient","miesiac","google_spend","meta_spend"])
+    all_rows = ws.get_all_records()
+    for i, row in enumerate(all_rows):
+        if row["klient"] == klient and row["miesiac"] == miesiac:
+            ws.update(f"A{i+2}:D{i+2}", [[klient, miesiac, google_spend, meta_spend]])
+            return
+    ws.append_row([klient, miesiac, google_spend, meta_spend])
+
+def load_spend() -> pd.DataFrame:
+    try:
+        ws = get_gsheet().worksheet("wydatki")
+        data = ws.get_all_records()
+        return pd.DataFrame(data) if data else pd.DataFrame(
+            columns=["klient","miesiac","google_spend","meta_spend"])
+    except:
+        return pd.DataFrame(columns=["klient","miesiac","google_spend","meta_spend"])
 
 def delete_client(nazwa):
     ws   = get_gsheet().worksheet("klienci")
@@ -143,7 +163,7 @@ hr {{ border-color:#1a1a32 !important; }}
 
 # ── sidebar ───────────────────────────────────────────────────────────────────
 with st.sidebar:
-    page = st.radio("", ["🏠  Dashboard", "👥  Klienci", "💰  Budżety", "⚙️  Ustawienia API"],
+    page = st.radio("", ["🏠  Dashboard", "👥  Klienci", "💰  Budżety", "📥  Pobierz z API", "⚙️  Ustawienia API"],
                     label_visibility="collapsed")
     st.markdown("---")
     today = date.today()
@@ -187,6 +207,7 @@ if "Dashboard" in page:
 
     clients_df = load_clients()
     budgets_df = load_budgets()
+    spend_df   = load_spend()
 
     if clients_df.empty:
         st.info("Brak danych. Dodaj klientów w zakładce 👥 Klienci.")
@@ -208,10 +229,9 @@ if "Dashboard" in page:
         total_r = float(bud_row["budzet_total"].values[0]) if not bud_row.empty else 0.0
         total_n = netto(total_r) if gm else total_r
 
-        key_g  = f"spend_google_{cname}_{period}"
-        key_fb = f"spend_meta_{cname}_{period}"
-        g_sn   = st.session_state.get(key_g,  0.0)
-        fb_sn  = st.session_state.get(key_fb, 0.0)
+        spnd_row = spend_df[(spend_df["klient"]==cname) & (spend_df["miesiac"]==period)]
+        g_sn  = float(spnd_row["google_spend"].values[0]) if not spnd_row.empty else 0.0
+        fb_sn = float(spnd_row["meta_spend"].values[0])   if not spnd_row.empty else 0.0
         tot_sn = g_sn + fb_sn
 
         rem_n  = max(0, total_n - tot_sn)
@@ -269,11 +289,11 @@ elif "Klienci" in page:
     with col1:
         section("Dodaj klienta")
         with st.form("add_client"):
-            name    = st.text_input("Nazwa klienta")
-            g_id    = st.text_input("Google Ads Customer ID", placeholder="123-456-7890")
-            fb_id   = st.text_input("Meta Ads Account ID",    placeholder="act_123456789")
-            typ     = st.selectbox("Typ kwoty budżetu", ["netto","brutto"])
-            submit  = st.form_submit_button("➕ Dodaj klienta", use_container_width=True)
+            name   = st.text_input("Nazwa klienta")
+            g_id   = st.text_input("Google Ads Customer ID", placeholder="123-456-7890")
+            fb_id  = st.text_input("Meta Ads Account ID",    placeholder="act_123456789")
+            typ    = st.selectbox("Typ kwoty budżetu", ["netto","brutto"])
+            submit = st.form_submit_button("➕ Dodaj klienta", use_container_width=True)
         if submit and name.strip():
             save_client(name.strip(), g_id.strip(), fb_id.strip(), typ)
             st.cache_resource.clear()
@@ -327,6 +347,99 @@ elif "Budżety" in page:
         st.rerun()
 
 # ══════════════════════════════════════════════════════════════════════════════
+# POBIERZ Z API
+# ══════════════════════════════════════════════════════════════════════════════
+elif "Pobierz" in page:
+    page_header("Pobierz dane z API", "Synchronizacja z Google Ads i Meta Ads")
+    clients_df = load_clients()
+
+    c1,c2 = st.columns(2)
+    sel_year2  = c1.selectbox("Rok",  [today.year-1,today.year,today.year+1], index=1)
+    sel_month2 = c2.selectbox("Miesiąc", range(1,13), index=today.month-1,
+                              format_func=lambda m: calendar.month_name[m])
+    period2 = f"{sel_year2}-{sel_month2:02d}"
+
+    if st.button("🔄 Pobierz dla wszystkich klientów", use_container_width=True, type="primary"):
+        from google.ads.googleads.client import GoogleAdsClient
+        from google.ads.googleads.errors import GoogleAdsException
+        from facebook_business.api import FacebookAdsApi
+        from facebook_business.adobjects.adaccount import AdAccount
+        from facebook_business.adobjects.adsinsights import AdsInsights
+        import calendar as cal
+
+        # init Google Ads
+        ga_config = {
+            "developer_token": st.secrets["GOOGLE_ADS_DEVELOPER_TOKEN"],
+            "client_id":       st.secrets["GOOGLE_ADS_CLIENT_ID"],
+            "client_secret":   st.secrets["GOOGLE_ADS_CLIENT_SECRET"],
+            "refresh_token":   st.secrets["GOOGLE_ADS_REFRESH_TOKEN"],
+            "use_proto_plus":  True,
+        }
+        if "GOOGLE_ADS_LOGIN_CUSTOMER_ID" in st.secrets:
+            ga_config["login_customer_id"] = st.secrets["GOOGLE_ADS_LOGIN_CUSTOMER_ID"]
+
+        ga_client  = GoogleAdsClient.load_from_dict(ga_config)
+        ga_service = ga_client.get_service("GoogleAdsService")
+
+        # init Meta
+        FacebookAdsApi.init(access_token=st.secrets["META_ACCESS_TOKEN"],
+                            api_version=st.secrets.get("META_API_VERSION","v19.0"))
+
+        last_day  = cal.monthrange(sel_year2, sel_month2)[1]
+        date_from = f"{sel_year2}-{sel_month2:02d}-01"
+        date_to   = f"{sel_year2}-{sel_month2:02d}-{last_day:02d}"
+
+        progress = st.progress(0)
+        results  = []
+
+        for i, (_, client) in enumerate(clients_df.iterrows()):
+            cname = client["nazwa"]
+            g_id  = str(client.get("google_ads_id","")).strip()
+            fb_id = str(client.get("meta_ads_id","")).strip()
+            g_net, fb_net = 0.0, 0.0
+            g_msg, fb_msg = "brak ID", "brak ID"
+
+            if g_id:
+                try:
+                    query = f"""
+                        SELECT metrics.cost_micros
+                        FROM customer
+                        WHERE segments.date BETWEEN '{date_from}' AND '{date_to}'
+                    """
+                    response = ga_service.search_stream(
+                        customer_id=g_id.replace("-",""), query=query)
+                    total_micros = sum(row.metrics.cost_micros
+                                       for batch in response for row in batch.results)
+                    g_net = round(total_micros / 1_000_000, 2)
+                    g_msg = "✅ OK"
+                except GoogleAdsException as e:
+                    g_msg = f"❌ {e.error.code().name}"
+                except Exception as e:
+                    g_msg = f"❌ {str(e)[:50]}"
+
+            if fb_id:
+                try:
+                    acc_id = fb_id if fb_id.startswith("act_") else f"act_{fb_id}"
+                    insights = AdAccount(acc_id).get_insights(params={
+                        "time_range": {"since": date_from, "until": date_to},
+                        "fields": [AdsInsights.Field.spend],
+                        "level": "account",
+                    })
+                    fb_net = round(sum(float(r["spend"]) for r in insights if "spend" in r), 2)
+                    fb_msg = "✅ OK"
+                except Exception as e:
+                    fb_msg = f"❌ {str(e)[:50]}"
+
+            save_spend(cname, period2, g_net, fb_net)
+            results.append({"Klient":cname,"Google":g_msg,
+                             "G netto":f"{g_net:.2f} zł","Meta":fb_msg,
+                             "FB netto":f"{fb_net:.2f} zł"})
+            progress.progress((i+1)/len(clients_df))
+
+        st.success("Zaktualizowano! Przejdź do Dashboard. ✅")
+        st.dataframe(pd.DataFrame(results), use_container_width=True, hide_index=True)
+
+# ══════════════════════════════════════════════════════════════════════════════
 # USTAWIENIA API
 # ══════════════════════════════════════════════════════════════════════════════
 elif "Ustawienia" in page:
@@ -339,11 +452,13 @@ elif "Ustawienia" in page:
 type = "service_account"
 project_id = "ermon-budget-tracker"
 private_key_id = "..."
-private_key = "-----BEGIN RSA PRIVATE KEY-----\\n...\\n-----END RSA PRIVATE KEY-----\\n"
+private_key = "..."
 client_email = "ermon-sheets@ermon-budget-tracker.iam.gserviceaccount.com"
 client_id = "..."
 auth_uri = "https://accounts.google.com/o/oauth2/auth"
 token_uri = "https://oauth2.googleapis.com/token"
+auth_provider_x509_cert_url = "https://www.googleapis.com/oauth2/v1/certs"
+client_x509_cert_url = "..."
 
 GOOGLE_ADS_DEVELOPER_TOKEN = "..."
 GOOGLE_ADS_CLIENT_ID = "..."
@@ -354,9 +469,3 @@ GOOGLE_ADS_LOGIN_CUSTOMER_ID = "..."
 META_ACCESS_TOKEN = "..."
 META_API_VERSION = "v19.0"
     """, language="toml")
-
-    section("Instrukcje")
-    with st.expander("Google Ads API"):
-        st.markdown("1. Konto MCC → https://ads.google.com/aw/apicenter → **Developer Token**\n2. Google Cloud Console → włącz **Google Ads API** → utwórz OAuth 2.0\n3. Wygeneruj `refresh_token` przez [OAuth Playground](https://developers.google.com/oauthplayground)")
-    with st.expander("Meta Ads API"):
-        st.markdown("1. https://developers.facebook.com/ → aplikacja **Business**\n2. Dodaj **Marketing API**\n3. Wygeneruj **Long-lived Access Token** z uprawnieniami `ads_read`")
