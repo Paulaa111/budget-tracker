@@ -382,8 +382,9 @@ elif "Pobierz" in page:
         ga_service = ga_client.get_service("GoogleAdsService")
 
         # init Meta
-        FacebookAdsApi.init(access_token=st.secrets["META_ACCESS_TOKEN"],
-                            api_version=st.secrets.get("META_API_VERSION","v19.0"))
+        meta_token = st.secrets.get("META_ACCESS_TOKEN", "brak")
+        meta_version = st.secrets.get("META_API_VERSION", "v19.0")
+        FacebookAdsApi.init(access_token=meta_token, api_version=meta_version)
 
         last_day  = cal.monthrange(sel_year2, sel_month2)[1]
         date_from = f"{sel_year2}-{sel_month2:02d}-01"
