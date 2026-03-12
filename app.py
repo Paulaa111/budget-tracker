@@ -369,10 +369,10 @@ elif "Pobierz" in page:
 
         # init Google Ads
         ga_config = {
-            "developer_token": st.secrets["GOOGLE_ADS_DEVELOPER_TOKEN"],
-            "client_id":       st.secrets["GOOGLE_ADS_CLIENT_ID"],
-            "client_secret":   st.secrets["GOOGLE_ADS_CLIENT_SECRET"],
-            "refresh_token":   st.secrets["GOOGLE_ADS_REFRESH_TOKEN"],
+            "developer_token": st.secrets["google_ads"]["GOOGLE_ADS_DEVELOPER_TOKEN"],
+            "client_id":       st.secrets["google_ads"]["GOOGLE_ADS_CLIENT_ID"],
+            "client_secret":   st.secrets["google_ads"]["GOOGLE_ADS_CLIENT_SECRET"],
+            "refresh_token":   st.secrets["google_ads"]["GOOGLE_ADS_REFRESH_TOKEN"],
             "use_proto_plus":  True,
         }
         if "GOOGLE_ADS_LOGIN_CUSTOMER_ID" in st.secrets:
