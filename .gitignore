@@ -1,0 +1,6 @@
+.env
+clients_data.json
+__pycache__/
+*.pyc
+venv/
+.streamlit/secrets.toml
