@@ -3,3 +3,5 @@ pandas>=2.0.0
 python-dotenv>=1.0.0
 gspread>=6.0.0
 google-auth>=2.0.0
+google-ads>=23.1.0
+facebook-business>=19.0.0
