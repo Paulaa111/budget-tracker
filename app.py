@@ -379,8 +379,8 @@ elif "Pobierz" in page:
         }
 
         # init Meta
-        meta_token = st.secrets["META_ACCESS_TOKEN"]
-        meta_version = st.secrets.get("META_API_VERSION", "v19.0")
+        meta_token = st.secrets["meta"]["META_ACCESS_TOKEN"]
+        meta_version = st.secrets["meta"].get("META_API_VERSION", "v19.0")
         FacebookAdsApi.init(access_token=meta_token, api_version=meta_version)
 
         last_day  = cal.monthrange(sel_year2, sel_month2)[1]
