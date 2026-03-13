@@ -249,10 +249,10 @@ if "Dashboard" in page:
     sum_daily = round(sum_rem/days_left, 2) if days_left > 0 else 0
 
     k1,k2,k3,k4,k5 = st.columns(5)
-    with k1: kpi_card("Łączny budżet",  f"{sum_bud:,.0f} zł",   "netto")
-    with k2: kpi_card("Łącznie wydano", f"{sum_spent:,.0f} zł", f"brutto: {gross(sum_spent):,.0f} zł")
-    with k3: kpi_card("Pozostało",      f"{sum_rem:,.0f} zł",   "netto", accent=True)
-    with k4: kpi_card("Max dziennie",   f"{sum_daily:,.0f} zł", f"na {days_left} dni")
+    with k1: kpi_card("Łączny budżet",  f"{sum_bud:.0f} zł",   "netto")
+    with k2: kpi_card("Łącznie wydano", f"{sum_spent:.0f} zł", f"brutto: {gross(sum_spent):.0f} zł")
+    with k3: kpi_card("Pozostało",      f"{sum_rem:.0f} zł",   "netto", accent=True)
+    with k4: kpi_card("Max dziennie",   f"{sum_daily:.0f} zł", f"na {days_left} dni")
     with k5: kpi_card("Klientów",       str(len(rows)),         f"{calendar.month_name[sel_month]} {sel_year}")
 
     section("Klienci")
@@ -261,11 +261,11 @@ if "Dashboard" in page:
         progress_bar(r["pct"])
         st.markdown("</div>", unsafe_allow_html=True)
         c1,c2,c3,c4,c5 = st.columns(5)
-        with c1: metric_mini("Budżet netto",  f"{r['total_n']:,.0f} zł", f"brutto {r['total_g']:,.0f}")
-        with c2: metric_mini("Google wydano", f"{r['g_sn']:,.0f} zł",    f"brutto {r['g_sg']:,.0f}")
-        with c3: metric_mini("Meta wydano",   f"{r['fb_sn']:,.0f} zł",   f"brutto {r['fb_sg']:,.0f}")
-        with c4: metric_mini("Pozostało",     f"{r['rem_n']:,.0f} zł",   f"brutto {r['rem_g']:,.0f}")
-        with c5: metric_mini("Max dziennie",  f"{r['daily']:,.0f} zł",   f"{days_left} dni")
+        with c1: metric_mini("Budżet netto",  f"{r['total_n']:.0f} zł", f"brutto {r['total_g']:.0f}")
+        with c2: metric_mini("Google wydano", f"{r['g_sn']:.0f} zł",    f"brutto {r['g_sg']:.0f}")
+        with c3: metric_mini("Meta wydano",   f"{r['fb_sn']:.0f} zł",   f"brutto {r['fb_sg']:.0f}")
+        with c4: metric_mini("Pozostało",     f"{r['rem_n']:.0f} zł",   f"brutto {r['rem_g']:.0f}")
+        with c5: metric_mini("Max dziennie",  f"{r['daily']:.0f} zł",   f"{days_left} dni")
         st.markdown("<br>", unsafe_allow_html=True)
 
     section("Tabela zbiorcza")
