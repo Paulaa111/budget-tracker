@@ -379,7 +379,7 @@ elif "Pobierz" in page:
         }
 
         # init Meta
-        meta_token = st.secrets.get("META_ACCESS_TOKEN", "brak")
+        meta_token = st.secrets["META_ACCESS_TOKEN"]
         meta_version = st.secrets.get("META_API_VERSION", "v19.0")
         FacebookAdsApi.init(access_token=meta_token, api_version=meta_version)
 
