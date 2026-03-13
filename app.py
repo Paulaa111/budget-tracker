@@ -368,18 +368,13 @@ elif "Pobierz" in page:
         import calendar as cal
 
         # init Google Ads
-        ga_config = {
+        ga_base_config = {
             "developer_token": st.secrets["google_ads"]["GOOGLE_ADS_DEVELOPER_TOKEN"],
             "client_id":       st.secrets["google_ads"]["GOOGLE_ADS_CLIENT_ID"],
             "client_secret":   st.secrets["google_ads"]["GOOGLE_ADS_CLIENT_SECRET"],
             "refresh_token":   st.secrets["google_ads"]["GOOGLE_ADS_REFRESH_TOKEN"],
             "use_proto_plus":  True,
         }
-        if "GOOGLE_ADS_LOGIN_CUSTOMER_ID" in st.secrets:
-            ga_config["login_customer_id"] = st.secrets["GOOGLE_ADS_LOGIN_CUSTOMER_ID"]
-
-        ga_client  = GoogleAdsClient.load_from_dict(ga_config)
-        ga_service = ga_client.get_service("GoogleAdsService")
 
         # init Meta
         meta_token = st.secrets.get("META_ACCESS_TOKEN", "brak")
