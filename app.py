@@ -397,6 +397,14 @@ elif "Pobierz" in page:
 
             if g_id:
                 try:
+                    mcc_id = str(client.get("mcc_id","")).strip()
+                    ga_config = ga_base_config.copy()
+                    if mcc_id:
+                        ga_config["login_customer_id"] = mcc_id
+                    elif "GOOGLE_ADS_LOGIN_CUSTOMER_ID" in st.secrets["google_ads"]:
+                        ga_config["login_customer_id"] = st.secrets["google_ads"]["GOOGLE_ADS_LOGIN_CUSTOMER_ID"]
+                    ga_client  = GoogleAdsClient.load_from_dict(ga_config)
+                    ga_service = ga_client.get_service("GoogleAdsService")
                     query = f"""
                         SELECT metrics.cost_micros
                         FROM customer
