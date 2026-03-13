@@ -48,8 +48,8 @@ def load_budgets() -> pd.DataFrame:
         st.error(f"Błąd odczytu budżetów: {e}")
         return pd.DataFrame(columns=["klient","miesiac","budzet_total"])
 
-def save_client(nazwa, google_id, meta_id, typ):
-    get_gsheet().worksheet("klienci").append_row([nazwa, google_id, meta_id, typ])
+def save_client(nazwa, google_id, meta_id, typ, mcc_id=""):
+    get_gsheet().worksheet("klienci").append_row([nazwa, google_id, meta_id, typ, mcc_id])
 
 def save_budget(klient, miesiac, budzet_total):
     ws  = get_gsheet().worksheet("budzety")
