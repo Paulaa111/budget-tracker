@@ -66,11 +66,11 @@ def save_spend(klient, miesiac, google_spend, meta_spend):
     except:
         get_gsheet().add_worksheet(title="wydatki", rows=1000, cols=5)
         ws = get_gsheet().worksheet("wydatki")
-        ws.append_row(["klient","miesiac","google_spend","meta_spend"])
+        ws.append_row([klient, miesiac, float(str(google_spend).replace(",",".")), float(str(meta_spend).replace(",","."))])
     all_rows = ws.get_all_records()
     for i, row in enumerate(all_rows):
         if row["klient"] == klient and row["miesiac"] == miesiac:
-            ws.update(f"A{i+2}:D{i+2}", [[klient, miesiac, google_spend, meta_spend]])
+            ws.update(f"A{i+2}:D{i+2}", [[klient, miesiac, float(str(google_spend).replace(",",".")), float(str(meta_spend).replace(",","."))]])
             return
     ws.append_row([klient, miesiac, google_spend, meta_spend])
 
