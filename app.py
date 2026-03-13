@@ -78,8 +78,12 @@ def load_spend() -> pd.DataFrame:
     try:
         ws = get_gsheet().worksheet("wydatki")
         data = ws.get_all_records()
-        return pd.DataFrame(data) if data else pd.DataFrame(
-            columns=["klient","miesiac","google_spend","meta_spend"])
+        if not data:
+            return pd.DataFrame(columns=["klient","miesiac","google_spend","meta_spend"])
+        df = pd.DataFrame(data)
+        df["google_spend"] = df["google_spend"].astype(str).str.replace(",",".").astype(float)
+        df["meta_spend"]   = df["meta_spend"].astype(str).str.replace(",",".").astype(float)
+        return df
     except:
         return pd.DataFrame(columns=["klient","miesiac","google_spend","meta_spend"])
 
