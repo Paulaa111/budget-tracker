@@ -288,17 +288,15 @@ elif "Klienci" in page:
 
     with col1:
         section("Dodaj klienta")
-        with st.form("add_client"):
-            name   = st.text_input("Nazwa klienta")
-            g_id   = st.text_input("Google Ads Customer ID", placeholder="123-456-7890")
-            fb_id  = st.text_input("Meta Ads Account ID",    placeholder="act_123456789")
-            typ    = st.selectbox("Typ kwoty budżetu", ["netto","brutto"])
-            submit = st.form_submit_button("➕ Dodaj klienta", use_container_width=True)
-        if submit and name.strip():
-            save_client(name.strip(), g_id.strip(), fb_id.strip(), typ)
-            st.cache_resource.clear()
-            st.success(f"Dodano: **{name.strip()}**")
-            st.rerun()
+            with st.form("add_client"):
+                name   = st.text_input("Nazwa klienta")
+                g_id   = st.text_input("Google Ads Customer ID", placeholder="123-456-7890")
+                mcc_id = st.text_input("MCC ID (konto menedżera nad klientem)", placeholder="1234567890")
+                fb_id  = st.text_input("Meta Ads Account ID",    placeholder="act_123456789")
+                typ    = st.selectbox("Typ kwoty budżetu", ["netto","brutto"])
+                submit = st.form_submit_button("➕ Dodaj klienta", use_container_width=True)
+            if submit and name.strip():
+                save_client(name.strip(), g_id.strip(), fb_id.strip(), typ, mcc_id.strip())
 
     with col2:
         section("Lista klientów")
