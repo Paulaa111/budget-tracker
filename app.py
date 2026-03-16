@@ -156,7 +156,7 @@ section[data-testid="stSidebar"] {{ background: #0d0d1f !important; border-right
 .badge-red    {{ background:#2b0d16; color:#e03060; border:1px solid #401020; }}
 .stButton > button {{ background:linear-gradient(135deg,#2D1B8E,#4428c0) !important; color:white !important; border:none !important; border-radius:8px !important; font-family:'DM Sans',sans-serif !important; font-weight:500 !important; transition:opacity .2s !important; }}
 .stButton > button:hover {{ opacity:0.82 !important; }}
-#MainMenu, footer, header {{ visibility:hidden; }}
+/* #MainMenu, footer, header {{ visibility:hidden; }} */
 hr {{ border-color:#1a1a32 !important; }}
 </style>
 <div class="ermon-logo-wrap">
