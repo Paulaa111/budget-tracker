@@ -103,7 +103,7 @@ def load_spend() -> pd.DataFrame:
             except:
                 return 0.0
 
-        df["google_spend"] = df["google_spend"].apply(clean_value)
+        df["google_spend"] = df["google_spend"].apply(lambda x: clean_value(x) / 100)
         df["meta_spend"]   = df["meta_spend"].apply(lambda x: clean_value(x) / 100)
         return df
     except Exception as e:
