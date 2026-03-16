@@ -89,44 +89,32 @@ def load_spend() -> pd.DataFrame:
         ws = get_gsheet().worksheet("wydatki")
         data = ws.get_all_records()
         if not data:
-            return pd.DataFrame(columns=["klient","miesiac","google_spend","meta_spend"])
+            return pd.DataFrame(columns=["klient", "miesiac", "google_spend", "meta_spend"])
         
         df = pd.DataFrame(data)
         
         def clean_value(val):
-            # 1. Zamieniamy wszystko na string
-            s = str(val).strip()
-    
-    # 2. Usuwamy wszelkie spacje (często są przy separatorach tysięcy)
-            s = s.replace(" ", "").replace("\u00A0", "")
-    
-    # 3. Sprawdzamy czy mamy przecinek lub kropkę
-            if ',' in s and '.' in s:
-                # Jeśli jest i to i to, usuwamy to, co jest separatorem tysięcy
-                if s.rfind(',') > s.rfind('.'): # Przecinek jest ostatni - to separator dziesiętny
-                    s = s.replace('.', '').replace(',', '.')
-                else: # Kropka jest ostatnia - to separator dziesiętny
-                    s = s.replace(',', '')
-            elif ',' in s:
-                # Jeśli jest tylko przecinek, zamieniamy go na kropkę
-                s = s.replace(',', '.')
-    
-    # 4. Na koniec czyścimy z innych śmieci
-            s = re.sub(r'[^0-9.]', '', s)
-    
+            # Zamień przecinek na kropkę
+            val = str(val).replace(',', '.')
+            # Usuń wszystkie znaki, które nie są cyframi lub kropką
+            val = re.sub(r'[^0-9.]', '', val)
             try:
-                f = float(s)
-                # Opcjonalne: Jeśli liczby są 100x za duże (np. 190312 zamiast 1903.12),
-                # to znaczy, że arkusz nie miał separatora dziesiętnego.
-                # Jeśli po powyższych krokach liczba nadal jest "za duża", odkomentuj poniższą linię:
-                # f = f / 100
-                return f
+                return float(val)
             except:
                 return 0.0
-# W sekcji DASHBOARD (pod load_spend())
+
+        df["google_spend"] = df["google_spend"].apply(clean_value)
+        df["meta_spend"] = df["meta_spend"].apply(clean_value)
+        return df
+        
+    except Exception as e:
+        st.error(f"Błąd ładowania: {e}")
+        return pd.DataFrame(columns=["klient", "miesiac", "google_spend", "meta_spend"])
+
+# Poniżej wklej wywołanie, które miało być w Dashboardzie:
 spend_df = load_spend()
 st.write("Podgląd pobranych danych (debug):")
-st.write(spend_df.head()) # To pokaże Ci w aplikacji, czy liczby są już poprawne
+st.write(spend_df.head())
 
 def delete_client(nazwa):
     ws   = get_gsheet().worksheet("klienci")
