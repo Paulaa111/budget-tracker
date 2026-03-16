@@ -80,11 +80,26 @@ def load_spend() -> pd.DataFrame:
         data = ws.get_all_records()
         if not data:
             return pd.DataFrame(columns=["klient","miesiac","google_spend","meta_spend"])
+        
         df = pd.DataFrame(data)
-        df["google_spend"] = df["google_spend"].astype(str).str.replace(",",".").astype(float)
-        df["meta_spend"]   = df["meta_spend"].astype(str).str.replace(",",".").astype(float)
+        
+        # Funkcja pomocnicza do czyszczenia liczb
+        def clean_number(value):
+            if isinstance(value, (int, float)):
+                return float(value)
+            # Zamień przecinek na kropkę, żeby ujednolicić format
+            s = str(value).replace(",", ".")
+            try:
+                return float(s)
+            except:
+                return 0.0
+
+        df["google_spend"] = df["google_spend"].apply(clean_number)
+        df["meta_spend"] = df["meta_spend"].apply(clean_number)
+        
         return df
-    except:
+    except Exception as e:
+        st.error(f"Błąd ładowania wydatków: {e}")
         return pd.DataFrame(columns=["klient","miesiac","google_spend","meta_spend"])
 
 def delete_client(nazwa):
