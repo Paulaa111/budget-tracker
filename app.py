@@ -146,7 +146,7 @@ LOGO_B64 = get_logo_base64()
 st.markdown(f"""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap');
-html, body, [class*="css"] { font-family: 'DM Sans', sans-serif; background-color: #1a1a2e; color: #e8e8f5; }
+html, body, [class*="css"] {{ font-family: 'DM Sans', sans-serif; background-color: #1a1a2e; color: #e8e8f5; }}
 section[data-testid="stSidebar"] { background: #16213e !important; border-right: 1px solid #2a2a4a; min-width: 220px !important; }
 section[data-testid="stSidebar"] label { font-size: 1rem !important; padding: 8px 0 !important; }
 .main .block-container { padding: 2rem 2.5rem; max-width: 1600px; }
