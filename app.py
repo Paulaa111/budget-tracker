@@ -466,7 +466,8 @@ elif "Pobierz" in page:
                         "fields": [AdsInsights.Field.spend],
                         "level": "account",
                     })
-                    fb_net = round(sum(float(r["spend"]) for r in insights if "spend" in r), 2)
+                    # Zmień w kodzie (sekcja Meta):
+                    fb_net = round(sum(float(r["spend"]) for r in insights if "spend" in r) / 10, 2)
                     fb_msg = "✅ OK"
                 except Exception as e:
                     fb_msg = f"❌ {str(e)[:50]}"
