@@ -89,32 +89,26 @@ def load_spend() -> pd.DataFrame:
         ws = get_gsheet().worksheet("wydatki")
         data = ws.get_all_records()
         if not data:
-            return pd.DataFrame(columns=["klient", "miesiac", "google_spend", "meta_spend"])
+            return pd.DataFrame(columns=["klient","miesiac","google_spend","meta_spend"])
         
         df = pd.DataFrame(data)
         
         def clean_value(val):
-            # Zamień przecinek na kropkę
-            val = str(val).replace(',', '.')
-            # Usuń wszystkie znaki, które nie są cyframi lub kropką
-            val = re.sub(r'[^0-9.]', '', val)
+            s = str(val)
+            s = s.replace('\xa0', '').replace(' ', '')  # usuń spacje i niełamliwe spacje
+            s = s.replace(',', '.')                      # zamień przecinek na kropkę
+            s = re.sub(r'[^0-9.]', '', s)               # zostaw tylko cyfry i kropkę
             try:
-                return float(val)
+                return float(s)
             except:
                 return 0.0
 
         df["google_spend"] = df["google_spend"].apply(clean_value)
-        df["meta_spend"] = df["meta_spend"].apply(clean_value)
+        df["meta_spend"]   = df["meta_spend"].apply(clean_value)
         return df
-        
     except Exception as e:
-        st.error(f"Błąd ładowania: {e}")
-        return pd.DataFrame(columns=["klient", "miesiac", "google_spend", "meta_spend"])
-
-# Poniżej wklej wywołanie, które miało być w Dashboardzie:
-spend_df = load_spend()
-st.write("Podgląd pobranych danych (debug):")
-st.write(spend_df.head())
+        st.error(f"Błąd ładowania wydatków: {e}")
+        return pd.DataFrame(columns=["klient","miesiac","google_spend","meta_spend"])
 
 def delete_client(nazwa):
     ws   = get_gsheet().worksheet("klienci")
