@@ -82,6 +82,8 @@ def save_spend(klient, miesiac, google_spend, meta_spend):
     except Exception as e:
         st.error(f"Błąd zapisu wydatków: {e}")
 
+import re
+
 def load_spend() -> pd.DataFrame:
     try:
         ws = get_gsheet().worksheet("wydatki")
@@ -91,18 +93,26 @@ def load_spend() -> pd.DataFrame:
         
         df = pd.DataFrame(data)
         
-        # Funkcja czyszcząca, która zamienia wszystko na float z kropką
-        def clean(val):
+        def clean_value(val):
+            # Zamień przecinek na kropkę
+            val = str(val).replace(',', '.')
+            # Usuń wszystkie znaki, które nie są cyframi lub kropką (np. spacje w "1 903.12")
+            val = re.sub(r'[^0-9.]', '', val)
             try:
-                return float(str(val).replace(',', '.'))
+                return float(val)
             except:
                 return 0.0
-                
-        df["google_spend"] = df["google_spend"].apply(clean)
-        df["meta_spend"] = df["meta_spend"].apply(clean)
+
+        df["google_spend"] = df["google_spend"].apply(clean_value)
+        df["meta_spend"] = df["meta_spend"].apply(clean_value)
         return df
     except:
         return pd.DataFrame(columns=["klient","miesiac","google_spend","meta_spend"])
+
+# W sekcji DASHBOARD (pod load_spend())
+spend_df = load_spend()
+st.write("Podgląd pobranych danych (debug):")
+st.write(spend_df.head()) # To pokaże Ci w aplikacji, czy liczby są już poprawne
 
 def delete_client(nazwa):
     ws   = get_gsheet().worksheet("klienci")
