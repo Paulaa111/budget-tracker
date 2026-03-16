@@ -272,20 +272,16 @@ if "Dashboard" in page:
     for _, client in clients_df.iterrows():
         cname = client["nazwa"]
         gm    = str(client.get("typ_kwoty","netto")).lower() == "brutto"
-
         bud_row = budgets_df[(budgets_df["klient"]==cname) & (budgets_df["miesiac"]==period)]
         total_r = float(bud_row["budzet_total"].values[0]) if not bud_row.empty else 0.0
         total_n = netto(total_r) if gm else total_r
-
         spnd_row = spend_df[(spend_df["klient"]==cname) & (spend_df["miesiac"]==period)]
         g_sn  = float(spnd_row["google_spend"].values[0]) if not spnd_row.empty else 0.0
         fb_sn = float(spnd_row["meta_spend"].values[0])   if not spnd_row.empty else 0.0
         tot_sn = g_sn + fb_sn
-
         rem_n  = max(0, total_n - tot_sn)
         daily  = round(rem_n/days_left, 2) if days_left > 0 else 0
         pct    = round(tot_sn/total_n*100, 1) if total_n > 0 else 0
-
         rows.append(dict(cname=cname, total_n=total_n, total_g=gross(total_n),
                          g_sn=g_sn, g_sg=gross(g_sn), fb_sn=fb_sn, fb_sg=gross(fb_sn),
                          tot_sn=tot_sn, tot_sg=gross(tot_sn),
@@ -301,9 +297,60 @@ if "Dashboard" in page:
     with k2: kpi_card("Łącznie wydano", f"{sum_spent:.2f} zł", f"brutto: {gross(sum_spent):.2f} zł")
     with k3: kpi_card("Pozostało",      f"{sum_rem:.2f} zł",   "netto", accent=True)
     with k4: kpi_card("Max dziennie",   f"{sum_daily:.2f} zł", f"na {days_left} dni")
-    with k5: kpi_card("Klientów",       str(len(rows)),         f"{calendar.month_name[sel_month]} {sel_year}")
+    with k5: kpi_card("Klientów",       str(len(rows)),        f"{calendar.month_name[sel_month]} {sel_year}")
 
-    
+    # ── wykresy ──
+    import plotly.express as px
+    import plotly.graph_objects as go
+
+    section("Wykresy")
+    col_chart1, col_chart2 = st.columns(2)
+
+    df_chart = pd.DataFrame([{
+        "Klient": r["cname"],
+        "Google": r["g_sn"],
+        "Meta":   r["fb_sn"],
+        "Budżet": r["total_n"],
+    } for r in rows])
+
+    with col_chart1:
+        fig1 = go.Figure()
+        fig1.add_trace(go.Bar(name="Google", x=df_chart["Klient"], y=df_chart["Google"],
+                              marker_color="#4285F4"))
+        fig1.add_trace(go.Bar(name="Meta", x=df_chart["Klient"], y=df_chart["Meta"],
+                              marker_color="#1877F2"))
+        fig1.add_trace(go.Scatter(name="Budżet", x=df_chart["Klient"], y=df_chart["Budżet"],
+                                  mode="markers", marker=dict(color="#f0b030", size=12, symbol="line-ew-open", line=dict(width=3))))
+        fig1.update_layout(
+            title="Wydatki vs Budżet",
+            barmode="stack",
+            paper_bgcolor="rgba(0,0,0,0)",
+            plot_bgcolor="rgba(0,0,0,0)",
+            font=dict(color="#e0e0f0", family="DM Sans"),
+            legend=dict(bgcolor="rgba(0,0,0,0)"),
+            xaxis=dict(gridcolor="#2a2a4a"),
+            yaxis=dict(gridcolor="#2a2a4a"),
+            height=380,
+        )
+        st.plotly_chart(fig1, use_container_width=True)
+
+    with col_chart2:
+        df_pie = pd.DataFrame([{
+            "Klient": r["cname"],
+            "Wydano": r["tot_sn"],
+        } for r in rows if r["tot_sn"] > 0])
+        if not df_pie.empty:
+            fig2 = px.pie(df_pie, names="Klient", values="Wydano",
+                          title="Podział wydatków między klientów",
+                          color_discrete_sequence=["#2D1B8E","#4428c0","#6040d0","#8060e0","#a080f0"])
+            fig2.update_layout(
+                paper_bgcolor="rgba(0,0,0,0)",
+                font=dict(color="#e0e0f0", family="DM Sans"),
+                height=380,
+            )
+            st.plotly_chart(fig2, use_container_width=True)
+
+    # ── tabela ──
     section("Tabela zbiorcza")
     df = pd.DataFrame([{"Klient":r["cname"],"Budżet netto":r["total_n"],"Budżet brutto":r["total_g"],
                          "Google wydano":r["g_sn"],"Meta wydano":r["fb_sn"],
@@ -314,6 +361,12 @@ if "Dashboard" in page:
                  use_container_width=True, hide_index=True)
     csv = df.to_csv(index=False,sep=";",decimal=",").encode("utf-8-sig")
     st.download_button("⬇️ Pobierz CSV", csv, file_name=f"ermon_budgety_{period}.csv", mime="text/csv")
+```
+
+Dodaj też `plotly` do `requirements.txt`:
+```
+plotly>=5.0.0
+    
 
 # ══════════════════════════════════════════════════════════════════════════════
 # KLIENCI
