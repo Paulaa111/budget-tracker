@@ -147,26 +147,26 @@ st.markdown(f"""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap');
 html, body, [class*="css"] {{ font-family: 'DM Sans', sans-serif; background-color: #1a1a2e; color: #e8e8f5; }}
-section[data-testid="stSidebar"] { background: #16213e !important; border-right: 1px solid #2a2a4a; min-width: 220px !important; }
-section[data-testid="stSidebar"] label { font-size: 1rem !important; padding: 8px 0 !important; }
-.main .block-container { padding: 2rem 2.5rem; max-width: 1600px; }
-.ermon-logo-wrap { padding: 1.5rem 1.2rem 1rem; border-bottom: 1px solid #2a2a4a; margin-bottom: 1rem; }
-.ermon-logo-wrap img { width: 130px; filter: brightness(0) invert(1); }
-.ermon-tagline { font-family:'DM Sans',sans-serif; font-size:0.7rem; letter-spacing:0.15em; color:#7070b0; text-transform:uppercase; margin-top:6px; }
-.ermon-page-title { font-family:'Syne',sans-serif; font-size:2rem; font-weight:800; color:#ffffff; letter-spacing:-0.03em; margin-bottom:0.2rem; }
-.ermon-page-subtitle { font-size:0.8rem; color:#7070a0; margin-bottom:2rem; letter-spacing:0.08em; text-transform:uppercase; }
-.kpi-card { background:linear-gradient(135deg,#1e1e3a,#252545); border:1px solid #2e2e5a; border-radius:16px; padding:1.4rem 1.6rem; transition:border-color .3s,transform .2s; margin-bottom:1rem; }
-.kpi-card:hover { border-color:#4040a0; transform:translateY(-2px); }
-.kpi-label { font-size:0.7rem; letter-spacing:0.12em; text-transform:uppercase; color:#7070a0; margin-bottom:0.5rem; }
-.kpi-value { font-family:'Syne',sans-serif; font-size:1.65rem; font-weight:700; color:#ffffff; line-height:1; }
-.kpi-value-accent { color:#8878f0; }
-.kpi-sub { font-size:0.72rem; color:#8080b0; margin-top:0.3rem; }
-.section-header { font-family:'Syne',sans-serif; font-size:0.85rem; font-weight:700; color:#8080c0; letter-spacing:0.14em; text-transform:uppercase; border-bottom:1px solid #2a2a4a; padding-bottom:0.5rem; margin:1.8rem 0 1.2rem; }
-.stButton > button { background:linear-gradient(135deg,#2D1B8E,#4428c0) !important; color:white !important; border:none !important; border-radius:8px !important; font-family:'DM Sans',sans-serif !important; font-weight:500 !important; transition:opacity .2s !important; }
-.stButton > button:hover { opacity:0.82 !important; }
-hr { border-color:#2a2a4a !important; }
-.stDataFrame { font-size: 1rem !important; }
-.stDataFrame td, .stDataFrame th { padding: 12px 16px !important; }
+section[data-testid="stSidebar"] {{ background: #16213e !important; border-right: 1px solid #2a2a4a; min-width: 220px !important; }}
+section[data-testid="stSidebar"] label {{ font-size: 1rem !important; padding: 8px 0 !important; }}
+.main .block-container {{ padding: 2rem 2.5rem; max-width: 1600px; }}
+.ermon-logo-wrap {{ padding: 1.5rem 1.2rem 1rem; border-bottom: 1px solid #2a2a4a; margin-bottom: 1rem; }}
+.ermon-logo-wrap img {{ width: 130px; filter: brightness(0) invert(1); }}
+.ermon-tagline {{ font-family:'DM Sans',sans-serif; font-size:0.7rem; letter-spacing:0.15em; color:#7070b0; text-transform:uppercase; margin-top:6px; }}
+.ermon-page-title {{ font-family:'Syne',sans-serif; font-size:2rem; font-weight:800; color:#ffffff; letter-spacing:-0.03em; margin-bottom:0.2rem; }}
+.ermon-page-subtitle {{ font-size:0.8rem; color:#7070a0; margin-bottom:2rem; letter-spacing:0.08em; text-transform:uppercase; }}
+.kpi-card {{ background:linear-gradient(135deg,#1e1e3a,#252545); border:1px solid #2e2e5a; border-radius:16px; padding:1.4rem 1.6rem; transition:border-color .3s,transform .2s; margin-bottom:1rem; }}
+.kpi-card:hover {{ border-color:#4040a0; transform:translateY(-2px); }}
+.kpi-label {{ font-size:0.7rem; letter-spacing:0.12em; text-transform:uppercase; color:#7070a0; margin-bottom:0.5rem; }}
+.kpi-value {{ font-family:'Syne',sans-serif; font-size:1.65rem; font-weight:700; color:#ffffff; line-height:1; }}
+.kpi-value-accent {{ color:#8878f0; }}
+.kpi-sub {{ font-size:0.72rem; color:#8080b0; margin-top:0.3rem; }}
+.section-header {{ font-family:'Syne',sans-serif; font-size:0.85rem; font-weight:700; color:#8080c0; letter-spacing:0.14em; text-transform:uppercase; border-bottom:1px solid #2a2a4a; padding-bottom:0.5rem; margin:1.8rem 0 1.2rem; }}
+.stButton > button {{ background:linear-gradient(135deg,#2D1B8E,#4428c0) !important; color:white !important; border:none !important; border-radius:8px !important; font-family:'DM Sans',sans-serif !important; font-weight:500 !important; transition:opacity .2s !important; }}
+.stButton > button:hover {{ opacity:0.82 !important; }}
+hr {{ border-color:#2a2a4a !important; }}
+.stDataFrame {{ font-size: 1rem !important; }}
+.stDataFrame td, .stDataFrame th {{ padding: 12px 16px !important; }}
 </style>
 <div class="ermon-logo-wrap">
     {"<img src='data:image/png;base64," + LOGO_B64 + "' />" if LOGO_B64 else "<span style='font-family:Syne,sans-serif;font-size:1.4rem;font-weight:800;color:#fff;'>Ermon.</span>"}
