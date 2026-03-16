@@ -299,6 +299,18 @@ if "Dashboard" in page:
     with k4: kpi_card("Max dziennie",   f"{sum_daily:.2f} zł", f"na {days_left} dni")
     with k5: kpi_card("Klientów",       str(len(rows)),        f"{calendar.month_name[sel_month]} {sel_year}")
 
+    # ── tabela ──
+    section("Tabela zbiorcza")
+    df = pd.DataFrame([{"Klient":r["cname"],"Budżet netto":r["total_n"],"Budżet brutto":r["total_g"],
+                         "Google wydano":r["g_sn"],"Meta wydano":r["fb_sn"],
+                         "Razem wydano":r["tot_sn"],"Razem brutto":r["tot_sg"],
+                         "Pozostało":r["rem_n"],"Max dziennie":r["daily"],"% budżetu":r["pct"]} for r in rows])
+    st.dataframe(df.style.format({c:"{:.2f}" for c in df.columns if c!="Klient"})
+                   .background_gradient(subset=["% budżetu"], cmap="RdYlGn_r", vmin=0, vmax=100),
+                 use_container_width=True, hide_index=True)
+    csv = df.to_csv(index=False,sep=";",decimal=",").encode("utf-8-sig")
+    st.download_button("⬇️ Pobierz CSV", csv, file_name=f"ermon_budgety_{period}.csv", mime="text/csv")
+    
     # ── wykresy ──
     import plotly.express as px
     import plotly.graph_objects as go
@@ -350,19 +362,7 @@ if "Dashboard" in page:
             )
             st.plotly_chart(fig2, use_container_width=True)
 
-    # ── tabela ──
-    section("Tabela zbiorcza")
-    df = pd.DataFrame([{"Klient":r["cname"],"Budżet netto":r["total_n"],"Budżet brutto":r["total_g"],
-                         "Google wydano":r["g_sn"],"Meta wydano":r["fb_sn"],
-                         "Razem wydano":r["tot_sn"],"Razem brutto":r["tot_sg"],
-                         "Pozostało":r["rem_n"],"Max dziennie":r["daily"],"% budżetu":r["pct"]} for r in rows])
-    st.dataframe(df.style.format({c:"{:.2f}" for c in df.columns if c!="Klient"})
-                   .background_gradient(subset=["% budżetu"], cmap="RdYlGn_r", vmin=0, vmax=100),
-                 use_container_width=True, hide_index=True)
-    csv = df.to_csv(index=False,sep=";",decimal=",").encode("utf-8-sig")
-    st.download_button("⬇️ Pobierz CSV", csv, file_name=f"ermon_budgety_{period}.csv", mime="text/csv")
-
-    
+        
 
 # ══════════════════════════════════════════════════════════════════════════════
 # KLIENCI
