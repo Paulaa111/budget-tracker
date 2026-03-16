@@ -467,7 +467,10 @@ elif "Pobierz" in page:
                         "level": "account",
                     })
                     # Zmień w kodzie (sekcja Meta):
-                    fb_net = round(sum(float(r["spend"]) for r in insights if "spend" in r) / 10, 2)
+                    # Zamiast fb_net = round(...)
+                    raw_spend = sum(float(r["spend"]) for r in insights if "spend" in r)
+                    st.write(f"Debug - Raw spend dla {cname}: {raw_spend}") # To pokaże Ci w aplikacji, co dokładnie zwraca Meta
+                    fb_net = round(raw_spend, 2)
                     fb_msg = "✅ OK"
                 except Exception as e:
                     fb_msg = f"❌ {str(e)[:50]}"
