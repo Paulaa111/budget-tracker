@@ -361,11 +361,7 @@ if "Dashboard" in page:
                  use_container_width=True, hide_index=True)
     csv = df.to_csv(index=False,sep=";",decimal=",").encode("utf-8-sig")
     st.download_button("⬇️ Pobierz CSV", csv, file_name=f"ermon_budgety_{period}.csv", mime="text/csv")
-```
 
-Dodaj też `plotly` do `requirements.txt`:
-```
-plotly>=5.0.0
     
 
 # ══════════════════════════════════════════════════════════════════════════════
