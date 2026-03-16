@@ -165,13 +165,48 @@ hr {{ border-color:#1a1a32 !important; }}
 </div>
 """, unsafe_allow_html=True)
 
+
 # ── sidebar ───────────────────────────────────────────────────────────────────
+# Definiujemy mapę: co widzisz w menu -> co program rozumie jako stronę
+menu_map = {
+    "🏠 Dashboard": "Dashboard",
+    "👥 Klienci": "Klienci",
+    "💰 Budżety": "Budżety",
+    "📥 Pobierz z API": "Pobierz",
+    "⚙️ Ustawienia API": "Ustawienia"
+}
+
 with st.sidebar:
-    page = st.radio("", ["🏠  Dashboard", "👥  Klienci", "💰  Budżety", "📥  Pobierz z API", "⚙️  Ustawienia API"],
-                    label_visibility="collapsed")
+    selection = st.radio("Menu", list(menu_map.keys()), label_visibility="collapsed")
+    page = menu_map[selection] # Tutaj przypisujemy czystą nazwę strony
+    
     st.markdown("---")
     today = date.today()
     st.caption(f"📅 {today.strftime('%d.%m.%Y')}")
+
+# ══════════════════════════════════════════════════════════════════════════════
+# GŁÓWNA LOGIKA NAWIGACJI
+# ══════════════════════════════════════════════════════════════════════════════
+
+if page == "Dashboard":
+    # ... (Twój kod dashboardu bez zmian)
+    pass
+
+elif page == "Klienci":
+    # ... (Twój kod klientów bez zmian)
+    pass
+
+elif page == "Budżety":
+    # ... (Twój kod budżetów bez zmian)
+    pass
+
+elif page == "Pobierz":
+    # ... (Twój kod pobierania bez zmian)
+    pass
+
+elif page == "Ustawienia":
+    # ... (Twój kod ustawień bez zmian)
+    pass
 
 # ── component helpers ─────────────────────────────────────────────────────────
 def kpi_card(label, value, sub="", accent=False):
