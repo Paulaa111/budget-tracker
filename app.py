@@ -317,19 +317,7 @@ if "Dashboard" in page:
     with k4: kpi_card("Max dziennie",   f"{sum_daily:.2f} zł", f"na {days_left} dni")
     with k5: kpi_card("Klientów",       str(len(rows)),         f"{calendar.month_name[sel_month]} {sel_year}")
 
-    section("Klienci")
-    for r in rows:
-        st.markdown(f'<div class="client-card"><div class="client-name">{r["cname"]}</div>', unsafe_allow_html=True)
-        progress_bar(r["pct"])
-        st.markdown("</div>", unsafe_allow_html=True)
-        c1,c2,c3,c4,c5 = st.columns(5)
-        with c1: metric_mini("Budżet netto",  f"{r['total_n']:.2f} zł", f"brutto {r['total_g']:.2f}")
-        with c2: metric_mini("Google wydano", f"{r['g_sn']:.2f} zł",    f"brutto {r['g_sg']:.2f}")
-        with c3: metric_mini("Meta wydano",   f"{r['fb_sn']:.2f} zł",   f"brutto {r['fb_sg']:.2f}")
-        with c4: metric_mini("Pozostało",     f"{r['rem_n']:.2f} zł",   f"brutto {r['rem_g']:.2f}")
-        with c5: metric_mini("Max dziennie",  f"{r['daily']:.2f} zł",   f"{days_left} dni")
-        st.markdown("<br>", unsafe_allow_html=True)
-
+    
     section("Tabela zbiorcza")
     df = pd.DataFrame([{"Klient":r["cname"],"Budżet netto":r["total_n"],"Budżet brutto":r["total_g"],
                          "Google wydano":r["g_sn"],"Meta wydano":r["fb_sn"],
