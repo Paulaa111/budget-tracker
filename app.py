@@ -62,17 +62,25 @@ def save_budget(klient, miesiac, budzet_total):
 
 def save_spend(klient, miesiac, google_spend, meta_spend):
     try:
+        # Upewniamy się, że to liczby (float), zamieniając ewentualne przecinki na kropki
+        g_val = float(str(google_spend).replace(',', '.'))
+        f_val = float(str(meta_spend).replace(',', '.'))
+        
         ws = get_gsheet().worksheet("wydatki")
-    except:
-        get_gsheet().add_worksheet(title="wydatki", rows=1000, cols=5)
-        ws = get_gsheet().worksheet("wydatki")
-        ws.append_row([klient, miesiac, float(str(google_spend).replace(",",".")), float(str(meta_spend).replace(",","."))])
-    all_rows = ws.get_all_records()
-    for i, row in enumerate(all_rows):
-        if row["klient"] == klient and row["miesiac"] == miesiac:
-            ws.update(f"A{i+2}:D{i+2}", [[klient, miesiac, float(str(google_spend).replace(",",".")), float(str(meta_spend).replace(",","."))]])
-            return
-    ws.append_row([klient, miesiac, google_spend, meta_spend])
+        all_rows = ws.get_all_records()
+        
+        # Sprawdzamy czy wiersz już istnieje
+        for i, row in enumerate(all_rows):
+            if row["klient"] == klient and row["miesiac"] == miesiac:
+                # Nadpisujemy wiersz czystymi wartościami (z kropką)
+                ws.update(f"A{i+2}:D{i+2}", [[klient, miesiac, g_val, f_val]])
+                return
+        
+        # Jeśli nie znaleziono, dodajemy nowy wiersz
+        ws.append_row([klient, miesiac, g_val, f_val])
+        
+    except Exception as e:
+        st.error(f"Błąd zapisu wydatków: {e}")
 
 def load_spend() -> pd.DataFrame:
     try:
@@ -83,23 +91,17 @@ def load_spend() -> pd.DataFrame:
         
         df = pd.DataFrame(data)
         
-        # Funkcja pomocnicza do czyszczenia liczb
-        def clean_number(value):
-            if isinstance(value, (int, float)):
-                return float(value)
-            # Zamień przecinek na kropkę, żeby ujednolicić format
-            s = str(value).replace(",", ".")
+        # Funkcja czyszcząca, która zamienia wszystko na float z kropką
+        def clean(val):
             try:
-                return float(s)
+                return float(str(val).replace(',', '.'))
             except:
                 return 0.0
-
-        df["google_spend"] = df["google_spend"].apply(clean_number)
-        df["meta_spend"] = df["meta_spend"].apply(clean_number)
-        
+                
+        df["google_spend"] = df["google_spend"].apply(clean)
+        df["meta_spend"] = df["meta_spend"].apply(clean)
         return df
-    except Exception as e:
-        st.error(f"Błąd ładowania wydatków: {e}")
+    except:
         return pd.DataFrame(columns=["klient","miesiac","google_spend","meta_spend"])
 
 def delete_client(nazwa):
