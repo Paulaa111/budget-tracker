@@ -94,21 +94,35 @@ def load_spend() -> pd.DataFrame:
         df = pd.DataFrame(data)
         
         def clean_value(val):
-            # Zamień przecinek na kropkę
-            val = str(val).replace(',', '.')
-            # Usuń wszystkie znaki, które nie są cyframi lub kropką (np. spacje w "1 903.12")
-            val = re.sub(r'[^0-9.]', '', val)
+            # 1. Zamieniamy wszystko na string
+            s = str(val).strip()
+    
+    # 2. Usuwamy wszelkie spacje (często są przy separatorach tysięcy)
+            s = s.replace(" ", "").replace("\u00A0", "")
+    
+    # 3. Sprawdzamy czy mamy przecinek lub kropkę
+            if ',' in s and '.' in s:
+                # Jeśli jest i to i to, usuwamy to, co jest separatorem tysięcy
+                if s.rfind(',') > s.rfind('.'): # Przecinek jest ostatni - to separator dziesiętny
+                    s = s.replace('.', '').replace(',', '.')
+                else: # Kropka jest ostatnia - to separator dziesiętny
+                    s = s.replace(',', '')
+            elif ',' in s:
+                # Jeśli jest tylko przecinek, zamieniamy go na kropkę
+                s = s.replace(',', '.')
+    
+    # 4. Na koniec czyścimy z innych śmieci
+            s = re.sub(r'[^0-9.]', '', s)
+    
             try:
-                return float(val)
+                f = float(s)
+                # Opcjonalne: Jeśli liczby są 100x za duże (np. 190312 zamiast 1903.12),
+                # to znaczy, że arkusz nie miał separatora dziesiętnego.
+                # Jeśli po powyższych krokach liczba nadal jest "za duża", odkomentuj poniższą linię:
+                # f = f / 100
+                return f
             except:
                 return 0.0
-
-        df["google_spend"] = df["google_spend"].apply(clean_value)
-        df["meta_spend"] = df["meta_spend"].apply(clean_value)
-        return df
-    except:
-        return pd.DataFrame(columns=["klient","miesiac","google_spend","meta_spend"])
-
 # W sekcji DASHBOARD (pod load_spend())
 spend_df = load_spend()
 st.write("Podgląd pobranych danych (debug):")
