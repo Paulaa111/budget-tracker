@@ -6,3 +6,4 @@ google-auth>=2.0.0
 google-ads>=23.1.0
 facebook-business>=19.0.0
 matplotlib>=3.7.0
+plotly>=5.0.0
