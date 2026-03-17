@@ -305,9 +305,10 @@ if "Dashboard" in page:
                          "Google wydano (netto)":r["g_sn"],"Meta wydano (netto)":r["fb_sn"],
                          "Razem wydano (netto)":r["tot_sn"],"Razem wydatno (brutto)":r["tot_sg"],
                          "Pozostało":r["rem_n"],"Max dziennie (netto)":r["daily"],"% budżetu":r["pct"]} for r in rows])
-    st.dataframe(df.style.format({c:"{:.2f}" for c in df.columns if c!="Klient"})
+    st.dataframe(df.style.format({c:"{:.2f} zł" for c in df.columns if c not in ["Klient","% budżetu"]})
+                   .format({"% budżetu": "{:.1f}%"})
                    .background_gradient(subset=["% budżetu"], cmap="RdYlGn_r", vmin=0, vmax=100),
-                  use_container_width=True, hide_index=True)
+                 use_container_width=True, hide_index=True, height=400)
     csv = df.to_csv(index=False,sep=";",decimal=",").encode("utf-8-sig")
     st.download_button("⬇️ Pobierz CSV", csv, file_name=f"ermon_budgety_{period}.csv", mime="text/csv")
     
