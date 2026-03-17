@@ -91,6 +91,7 @@ def load_spend() -> pd.DataFrame:
         if not data:
             return pd.DataFrame(columns=["klient","miesiac","google_spend","meta_spend"])
         df = pd.DataFrame(data)
+        st.write("RAW DATA:", df[["google_spend","meta_spend"]].head())
         def clean_value(val):
             s = str(val).replace('\xa0','').replace(' ','').replace(',','.')
             s = re.sub(r'[^0-9.]', '', s)
