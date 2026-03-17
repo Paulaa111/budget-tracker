@@ -306,9 +306,8 @@ if "Dashboard" in page:
                          "Razem wydano (netto)":r["tot_sn"],"Razem wydatno (brutto)":r["tot_sg"],
                          "Pozostało":r["rem_n"],"Max dziennie (netto)":r["daily"],"% budżetu":r["pct"]} for r in rows])
     st.dataframe(df.style.format({c:"{:.2f}" for c in df.columns if c!="Klient"})
-               .background_gradient(subset=["% budżetu"], cmap="RdYlGn_r", vmin=0, vmax=100),
                    .background_gradient(subset=["% budżetu"], cmap="RdYlGn_r", vmin=0, vmax=100),
-                 use_container_width=True, hide_index=True)
+                  use_container_width=True, hide_index=True)
     csv = df.to_csv(index=False,sep=";",decimal=",").encode("utf-8-sig")
     st.download_button("⬇️ Pobierz CSV", csv, file_name=f"ermon_budgety_{period}.csv", mime="text/csv")
     
