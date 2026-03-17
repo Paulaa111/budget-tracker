@@ -282,10 +282,21 @@ if "Dashboard" in page:
         rem_n  = max(0, total_n - tot_sn)
         daily  = round(rem_n/days_left, 2) if days_left > 0 else 0
         pct    = round(tot_sn/total_n*100, 1) if total_n > 0 else 0
-        rows.append(dict(cname=cname, total_n=total_n, total_g=gross(total_n),
-                         g_sn=g_sn, g_sg=gross(g_sn), fb_sn=fb_sn, fb_sg=gross(fb_sn),
-                         tot_sn=tot_sn, tot_sg=gross(tot_sn),
-                         rem_n=rem_n, rem_g=gross(rem_n), daily=daily, pct=pct))
+        rows.append(dict(
+            cname=cname,
+            total_n=round(total_n, 2),
+            total_g=round(gross(total_n), 2),
+            g_sn=round(g_sn, 2),
+            g_sg=round(gross(g_sn), 2),
+            fb_sn=round(fb_sn, 2),
+            fb_sg=round(gross(fb_sn), 2),
+            tot_sn=round(tot_sn, 2),
+            tot_sg=round(gross(tot_sn), 2),
+            rem_n=round(rem_n, 2),
+            rem_g=round(gross(rem_n), 2),
+            daily=round(daily, 2),
+            pct=round(pct, 1)
+        ))
 
     sum_bud   = sum(r["total_n"] for r in rows)
     sum_spent = sum(r["tot_sn"]  for r in rows)
