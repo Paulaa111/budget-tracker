@@ -305,8 +305,9 @@ if "Dashboard" in page:
                          "Google wydano (netto)":r["g_sn"],"Meta wydano (netto)":r["fb_sn"],
                          "Razem wydano (netto)":r["tot_sn"],"Razem wydatno (brutto)":r["tot_sg"],
                          "Pozostało":r["rem_n"],"Max dziennie (netto)":r["daily"],"% budżetu":r["pct"]} for r in rows])
-    numeric_cols = [c for c in df.columns if c != "Klient"]
-    df[numeric_cols] = df[numeric_cols].round(2)
+    for col in df.columns:
+        if col != "Klient":
+            df[col] = df[col].apply(lambda x: round(float(x), 2))
     st.dataframe(df.style.format({c:"{:.2f} zł" for c in df.columns if c not in ["Klient","% budżetu"]})
                    .format({"% budżetu": "{:.1f}%"})
                    .background_gradient(subset=["% budżetu"], cmap="RdYlGn_r", vmin=0, vmax=100),
