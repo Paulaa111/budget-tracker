@@ -62,23 +62,17 @@ def save_budget(klient, miesiac, budzet_total):
 
 def save_spend(klient, miesiac, google_spend, meta_spend):
     try:
-        # Upewniamy się, że to liczby (float), zamieniając ewentualne przecinki na kropki
-        g_val = float(str(google_spend).replace(',', '.'))
-        f_val = float(str(meta_spend).replace(',', '.'))
-        
+        g_val = round(float(google_spend), 2)
+        f_val = round(float(meta_spend), 2)
         ws = get_gsheet().worksheet("wydatki")
         all_rows = ws.get_all_records()
-        
-        # Sprawdzamy czy wiersz już istnieje
         for i, row in enumerate(all_rows):
             if row["klient"] == klient and row["miesiac"] == miesiac:
-                # Nadpisujemy wiersz czystymi wartościami (z kropką)
-                ws.update(f"A{i+2}:D{i+2}", [[klient, miesiac, g_val, f_val]])
+                ws.update(f"A{i+2}:D{i+2}", [[klient, miesiac, g_val, f_val]],
+                         value_input_option="RAW")
                 return
-        
-        # Jeśli nie znaleziono, dodajemy nowy wiersz
-        ws.append_row([klient, miesiac, g_val, f_val])
-        
+        ws.append_row([klient, miesiac, g_val, f_val],
+                     value_input_option="RAW")
     except Exception as e:
         st.error(f"Błąd zapisu wydatków: {e}")
 
