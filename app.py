@@ -302,9 +302,9 @@ if "Dashboard" in page:
     # ── tabela ──
     section("Tabela zbiorcza")
     df = pd.DataFrame([{"Klient":r["cname"],"Budżet netto":r["total_n"],"Budżet brutto":r["total_g"],
-                         "Google wydano (netto)":r["g_sn"],"Meta wydano":r["fb_sn"],
-                         "Razem wydano":r["tot_sn"],"Razem brutto":r["tot_sg"],
-                         "Pozostało":r["rem_n"],"Max dziennie":r["daily"],"% budżetu":r["pct"]} for r in rows])
+                         "Google wydano (netto)":r["g_sn"],"Meta wydano (netto)":r["fb_sn"],
+                         "Razem wydano (netto)":r["tot_sn"],"Razem wydatno (brutto)":r["tot_sg"],
+                         "Pozostało":r["rem_n"],"Max dziennie (netto)":r["daily"],"% budżetu":r["pct"]} for r in rows])
     st.dataframe(df.style.format({c:"{:.2f}" for c in df.columns if c!="Klient"})
                    .background_gradient(subset=["% budżetu"], cmap="RdYlGn_r", vmin=0, vmax=100),
                  use_container_width=True, hide_index=True)
