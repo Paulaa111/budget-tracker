@@ -90,21 +90,16 @@ def load_spend() -> pd.DataFrame:
         data = ws.get_all_records()
         if not data:
             return pd.DataFrame(columns=["klient","miesiac","google_spend","meta_spend"])
-        
         df = pd.DataFrame(data)
-        
         def clean_value(val):
-            s = str(val)
-            s = s.replace('\xa0', '').replace(' ', '')  # usuń spacje i niełamliwe spacje
-            s = s.replace(',', '.')                      # zamień przecinek na kropkę
-            s = re.sub(r'[^0-9.]', '', s)               # zostaw tylko cyfry i kropkę
+            s = str(val).replace('\xa0','').replace(' ','').replace(',','.')
+            s = re.sub(r'[^0-9.]', '', s)
             try:
-                return float(s)
+                return round(float(s), 2)
             except:
                 return 0.0
-
-        df["google_spend"] = df["google_spend"].apply(lambda x: round(clean_value(x) / 100, 2))
-        df["meta_spend"]   = df["meta_spend"].apply(lambda x: round(clean_value(x) / 100, 2))
+        df["google_spend"] = df["google_spend"].apply(clean_value)
+        df["meta_spend"]   = df["meta_spend"].apply(clean_value)
         return df
     except Exception as e:
         st.error(f"Błąd ładowania wydatków: {e}")
@@ -527,11 +522,7 @@ elif "Pobierz" in page:
                         "fields": [AdsInsights.Field.spend],
                         "level": "account",
                     })
-                    # Zmień w kodzie (sekcja Meta):
-                    # Zamiast fb_net = round(...)
-                    raw_spend = sum(float(r["spend"]) for r in insights if "spend" in r)
-                    st.write(f"Debug - Raw spend dla {cname}: {raw_spend}") # To pokaże Ci w aplikacji, co dokładnie zwraca Meta
-                    fb_net = round(raw_spend, 2)
+                    fb_net = round(sum(float(r["spend"]) for r in insights if "spend" in r), 2)
                     fb_msg = "✅ OK"
                 except Exception as e:
                     fb_msg = f"❌ {str(e)[:50]}"
