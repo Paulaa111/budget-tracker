@@ -302,7 +302,7 @@ if "Dashboard" in page:
     # ── tabela ──
     section("Tabela zbiorcza")
     df = pd.DataFrame([{"Klient":r["cname"],"Budżet netto":r["total_n"],"Budżet brutto":r["total_g"],
-                         "Google wydano":r["g_sn"],"Meta wydano":r["fb_sn"],
+                         "Google wydano (netto)":r["g_sn"],"Meta wydano":r["fb_sn"],
                          "Razem wydano":r["tot_sn"],"Razem brutto":r["tot_sg"],
                          "Pozostało":r["rem_n"],"Max dziennie":r["daily"],"% budżetu":r["pct"]} for r in rows])
     st.dataframe(df.style.format({c:"{:.2f}" for c in df.columns if c!="Klient"})
