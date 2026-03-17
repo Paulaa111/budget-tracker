@@ -319,7 +319,7 @@ if "Dashboard" in page:
     for col in df.columns:
         if col != "Klient":
             df[col] = df[col].apply(lambda x: round(float(x), 2))
-    st.dataframe(df.style.format({c:"{:.2f} zł" for c in df.columns if c not in ["Klient","% budżetu"]})
+    st.dataframe(df.style.format({c:"{:.2f}" for c in df.columns if c not in ["Klient","% budżetu"]})
                    .format({"% budżetu": "{:.1f}%"})
                    .background_gradient(subset=["% budżetu"], cmap="RdYlGn_r", vmin=0, vmax=100),
                  use_container_width=True, hide_index=True, height=400)
