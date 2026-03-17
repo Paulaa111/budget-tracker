@@ -87,8 +87,17 @@ def load_spend() -> pd.DataFrame:
         df = pd.DataFrame(data)
         st.write("RAW DATA:", df[["google_spend","meta_spend"]].head())
         def clean_value(val):
-            s = str(val).replace('\xa0','').replace(' ','').replace(',','.')
+            s = str(val).strip()
+            # usuń spacje i niełamliwe spacje (separator tysięcy)
+            s = s.replace('\xa0', '').replace('\u00a0', '').replace(' ', '')
+            # zamień przecinek na kropkę (separator dziesiętny)
+            s = s.replace(',', '.')
+            # usuń wszystko poza cyframi i kropką
             s = re.sub(r'[^0-9.]', '', s)
+            # jeśli jest więcej niż jedna kropka, zostaw tylko ostatnią
+            parts = s.split('.')
+            if len(parts) > 2:
+                s = ''.join(parts[:-1]) + '.' + parts[-1]
             try:
                 return round(float(s), 2)
             except:
