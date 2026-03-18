@@ -99,7 +99,7 @@ def load_spend():
                 return 0.0
 
         df["google_spend"] = df["google_spend"].apply(lambda x: clean_value(x, divide_by_100=False))
-        df["meta_spend"]   = df["meta_spend"].apply(lambda x: clean_value(x, divide_by_100=True))
+        df["meta_spend"]   = df["meta_spend"].apply(lambda x: clean_value(x, divide_by_100=False))
         return df
     except Exception as e:
         st.error(f"Błąd ładowania wydatków: {e}")
