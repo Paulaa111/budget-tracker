@@ -271,7 +271,7 @@ if page == "Dashboard":
             <td style="color:#8878f0;font-weight:bold;">{r['pct']:.1f}%</td>
         </tr>"""
     
-    st.markdown(f"""
+    st.html(f"""
     <table style="width:100%;border-collapse:collapse;font-size:18px;font-family:'DM Sans',sans-serif;">
         <thead>
             <tr style="background:#2a3a5a;color:#ffffff;">
@@ -291,7 +291,7 @@ if page == "Dashboard":
             {html_rows}
         </tbody>
     </table>
-    """, unsafe_allow_html=True)
+    """
     
     st.markdown("<br>", unsafe_allow_html=True)
     csv = pd.DataFrame([{
