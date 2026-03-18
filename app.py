@@ -267,7 +267,14 @@ if page == "Dashboard":
        "Max dziennie":  f"{r['daily']:.2f}",
        "% budżetu":     f"{r['pct']:.1f}%",
     } for r in rows])
-
+    
+    st.markdown("""
+    <style>
+    [data-testid="stDataFrame"] td { font-size: 16px !important; padding: 14px 18px !important; }
+    [data-testid="stDataFrame"] th { font-size: 16px !important; padding: 14px 18px !important; }
+    iframe { min-height: 500px !important; }
+    </style>
+    """, unsafe_allow_html=True)
     st.dataframe(
         df.style
           .set_properties(subset=["Pozostało", "Max dziennie", "% budżetu"],
