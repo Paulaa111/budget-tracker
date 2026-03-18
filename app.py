@@ -79,11 +79,16 @@ def load_spend():
                     result = result / 100
                 return round(result, 2)
             s = str(val).strip()
+            # usuń spacje i niełamliwe spacje
             s = s.replace('\xa0', '').replace('\u00a0', '').replace(' ', '')
-            s = s.replace(',', '.')
-            parts = s.split('.')
-            if len(parts) > 2:
-                s = ''.join(parts[:-1]) + '.' + parts[-1]
+            # format angielski: 1,542.92 - usuń przecinek (separator tysięcy), zostaw kropkę
+            # format polski: 1 542,92 - usuń spację, zamień przecinek na kropkę
+            if '.' in s and ',' in s:
+                # mamy oba - przecinek to separator tysięcy, kropka to dziesiętna
+                s = s.replace(',', '')
+            elif ',' in s and '.' not in s:
+                # tylko przecinek - to separator dziesiętny
+                s = s.replace(',', '.')
             s = re.sub(r'[^0-9.]', '', s)
             try:
                 result = float(s)
