@@ -274,7 +274,12 @@ if page == "Dashboard":
        "% budżetu":     f"{r['pct']:.1f}%",
     } for r in rows])
 
-    st.dataframe(df, use_container_width=True, hide_index=True, height=400)
+    st.dataframe(
+        df.style
+          .set_properties(subset=["Pozostało", "Max dziennie", "% budżetu"],
+                          **{"background-color": "#1e2d4a", "font-weight": "bold", "color": "#8878f0"}),
+        use_container_width=True, hide_index=True, height=400
+    )
     csv = df.to_csv(index=False, sep=";", decimal=",").encode("utf-8-sig")
     st.download_button("⬇️ Pobierz CSV", csv, file_name=f"ermon_budgety_{period}.csv", mime="text/csv")
 
