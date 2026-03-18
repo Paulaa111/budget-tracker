@@ -270,8 +270,8 @@ if page == "Dashboard":
     
     st.markdown("""
     <style>
-    [data-testid="stDataFrame"] td { font-size: 16px !important; padding: 14px 18px !important; }
-    [data-testid="stDataFrame"] th { font-size: 16px !important; padding: 14px 18px !important; }
+    [data-testid="stDataFrame"] td { font-size: 25px !important; padding: 14px 18px !important; }
+    [data-testid="stDataFrame"] th { font-size: 25px !important; padding: 14px 18px !important; }
     iframe { min-height: 500px !important; }
     </style>
     """, unsafe_allow_html=True)
