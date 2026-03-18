@@ -158,8 +158,9 @@ section[data-testid="stSidebar"] label {{ font-size: 1rem !important; padding: 8
 .stButton > button {{ background:linear-gradient(135deg,#2D1B8E,#4428c0) !important; color:white !important; border:none !important; border-radius:8px !important; font-family:'DM Sans',sans-serif !important; font-weight:500 !important; transition:opacity .2s !important; }}
 .stButton > button:hover {{ opacity:0.82 !important; }}
 hr {{ border-color:#2a2a4a !important; }}
-.stDataFrame {{ font-size: 1rem !important; }}
-.stDataFrame td, .stDataFrame th {{ padding: 12px 16px !important; }}
+.stDataFrame {{ font-size: 16px !important; }}
+.stDataFrame td {{ font-size: 16px !important; padding: 14px 18px !important; background-color: #3a4a6a !important; }}
+.stDataFrame th {{ font-size: 16px !important; padding: 14px 18px !important; background-color: #2a3a5a !important; color: #ffffff !important; }}
 </style>
 <div class="ermon-logo-wrap">
     {"<img src='data:image/png;base64," + LOGO_B64 + "' />" if LOGO_B64 else "<span style='font-family:Syne,sans-serif;font-size:1.4rem;font-weight:800;color:#fff;'>Ermon.</span>"}
