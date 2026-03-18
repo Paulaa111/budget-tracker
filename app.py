@@ -255,7 +255,8 @@ if page == "Dashboard":
         "Max dziennie":  r["daily"],
         "% budżetu":     r["pct"],
     } for r in rows])
-
+    
+    df = df.round(2)
     st.dataframe(
         df.style
           .format({c: "{:.2f}" for c in df.columns if c not in ["Klient","% budżetu"]})
