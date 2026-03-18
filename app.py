@@ -274,7 +274,7 @@ if page == "Dashboard":
         </tr>"""
     
     st.html(f"""
-    <table style="width:100%;border-collapse:collapse;font-family:'DM Sans',sans-serif;font-size:20px;">
+    <table style="width:100%;border-collapse:separate;border-spacing:0;font-family:'DM Sans',sans-serif;font-size:18px;border-radius:12px;overflow:hidden;">
         <thead>
             <tr style="background:#1e2d4a;color:#a0b0d0;font-size:13px;letter-spacing:0.1em;text-transform:uppercase;">
                 <th style="padding:16px 20px;text-align:left;border-bottom:2px solid #4a5a7a;">Klient</th>
