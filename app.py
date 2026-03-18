@@ -211,26 +211,39 @@ if page == "Dashboard":
     period    = f"{sel_year}-{sel_month:02d}"
     days_left = days_remaining(sel_year, sel_month)
 
-    rows = []
+    # grupowanie klientów
+    groups = {}
     for _, client in clients_df.iterrows():
         cname = client["nazwa"]
+        grupa = str(client.get("grupa", cname)).strip() or cname
         gm    = str(client.get("typ_kwoty","netto")).lower() == "brutto"
-        bud_row  = budgets_df[(budgets_df["klient"]==cname) & (budgets_df["miesiac"]==period)]
-        total_r  = float(bud_row["budzet_total"].values[0]) if not bud_row.empty else 0.0
-        total_n  = netto(total_r) if gm else total_r
+
         spnd_row = spend_df[(spend_df["klient"]==cname) & (spend_df["miesiac"]==period)]
         g_sn  = float(spnd_row["google_spend"].values[0]) if not spnd_row.empty else 0.0
         fb_sn = float(spnd_row["meta_spend"].values[0])   if not spnd_row.empty else 0.0
-        tot_sn = g_sn + fb_sn
-        rem_n  = max(0, total_n - tot_sn)
-        daily  = round(rem_n/days_left, 2) if days_left > 0 else 0
-        pct    = round(tot_sn/total_n*100, 1) if total_n > 0 else 0
+
+        if grupa not in groups:
+            groups[grupa] = {"g_sn": 0.0, "fb_sn": 0.0, "gm": gm}
+        groups[grupa]["g_sn"]  += g_sn
+        groups[grupa]["fb_sn"] += fb_sn
+
+    rows = []
+    for grupa, gdata in groups.items():
+        bud_row = budgets_df[(budgets_df["klient"]==grupa) & (budgets_df["miesiac"]==period)]
+        total_r = float(bud_row["budzet_total"].values[0]) if not bud_row.empty else 0.0
+        total_n = netto(total_r) if gdata["gm"] else total_r
+        g_sn    = round(gdata["g_sn"], 2)
+        fb_sn   = round(gdata["fb_sn"], 2)
+        tot_sn  = round(g_sn + fb_sn, 2)
+        rem_n   = max(0, total_n - tot_sn)
+        daily   = round(rem_n/days_left, 2) if days_left > 0 else 0
+        pct     = round(tot_sn/total_n*100, 1) if total_n > 0 else 0
         rows.append(dict(
-            cname=cname,
+            cname=grupa,
             total_n=round(total_n,2), total_g=round(gross(total_n),2),
-            g_sn=round(g_sn,2), g_sg=round(gross(g_sn),2),
-            fb_sn=round(fb_sn,2), fb_sg=round(gross(fb_sn),2),
-            tot_sn=round(tot_sn,2), tot_sg=round(gross(tot_sn),2),
+            g_sn=g_sn, g_sg=round(gross(g_sn),2),
+            fb_sn=fb_sn, fb_sg=round(gross(fb_sn),2),
+            tot_sn=tot_sn, tot_sg=round(gross(tot_sn),2),
             rem_n=round(rem_n,2), rem_g=round(gross(rem_n),2),
             daily=round(daily,2), pct=round(pct,1)
         ))
