@@ -255,23 +255,23 @@ if page == "Dashboard":
     sum_daily = round(sum_rem/days_left, 2) if days_left > 0 else 0
     
     section("Tabela zbiorcza")
-   html_rows = ""
-   for i, r in enumerate(rows):
-       bg = "#232d42" if i % 2 == 0 else "#1a2236"
-       pct_color = "#2ecc88" if r['pct'] < 75 else ("#f0b030" if r['pct'] < 95 else "#e03060")
-       html_rows += f"""
-       <tr style="background:{bg};border-bottom:1px solid #3a4a6a;">
-           <td style="padding:20px 20px;font-weight:600;color:#ffffff;border-right:1px solid #3a4a6a;">{r['cname']}</td>
-           <td style="padding:20px 20px;text-align:right;border-right:1px solid #3a4a6a;">{r['total_n']:.2f} zł</td>
-           <td style="padding:20px 20px;text-align:right;border-right:1px solid #3a4a6a;color:#8080b0;">{r['total_g']:.2f} zł</td>
-           <td style="padding:20px 20px;text-align:right;border-right:1px solid #3a4a6a;color:#4285F4;">{r['g_sn']:.2f} zł</td>
-           <td style="padding:20px 20px;text-align:right;border-right:1px solid #3a4a6a;color:#1877F2;">{r['fb_sn']:.2f} zł</td>
-           <td style="padding:20px 20px;text-align:right;border-right:1px solid #3a4a6a;font-weight:600;">{r['tot_sn']:.2f} zł</td>
-           <td style="padding:20px 20px;text-align:right;border-right:1px solid #3a4a6a;color:#8080b0;">{r['tot_sg']:.2f} zł</td>
-           <td style="padding:20px 20px;text-align:right;border-right:1px solid #3a4a6a;color:#8878f0;font-weight:600;">{r['rem_n']:.2f} zł</td>
-           <td style="padding:20px 20px;text-align:right;border-right:1px solid #3a4a6a;color:#8878f0;font-weight:600;">{r['daily']:.2f} zł</td>
-           <td style="padding:20px 20px;text-align:right;color:{pct_color};font-weight:700;">{r['pct']:.1f}%</td>
-       </tr>"""
+    html_rows = ""
+    for i, r in enumerate(rows):
+        bg = "#232d42" if i % 2 == 0 else "#1a2236"
+        pct_color = "#2ecc88" if r['pct'] < 75 else ("#f0b030" if r['pct'] < 95 else "#e03060")
+        html_rows += f"""
+        <tr style="background:{bg};border-bottom:1px solid #3a4a6a;">
+            <td style="padding:20px 20px;font-weight:600;color:#ffffff;border-right:1px solid #3a4a6a;">{r['cname']}</td>
+            <td style="padding:20px 20px;text-align:right;border-right:1px solid #3a4a6a;">{r['total_n']:.2f} zł</td>
+            <td style="padding:20px 20px;text-align:right;border-right:1px solid #3a4a6a;color:#8080b0;">{r['total_g']:.2f} zł</td>
+            <td style="padding:20px 20px;text-align:right;border-right:1px solid #3a4a6a;color:#4285F4;">{r['g_sn']:.2f} zł</td>
+            <td style="padding:20px 20px;text-align:right;border-right:1px solid #3a4a6a;color:#1877F2;">{r['fb_sn']:.2f} zł</td>
+            <td style="padding:20px 20px;text-align:right;border-right:1px solid #3a4a6a;font-weight:600;">{r['tot_sn']:.2f} zł</td>
+            <td style="padding:20px 20px;text-align:right;border-right:1px solid #3a4a6a;color:#8080b0;">{r['tot_sg']:.2f} zł</td>
+            <td style="padding:20px 20px;text-align:right;border-right:1px solid #3a4a6a;color:#8878f0;font-weight:600;">{r['rem_n']:.2f} zł</td>
+            <td style="padding:20px 20px;text-align:right;border-right:1px solid #3a4a6a;color:#8878f0;font-weight:600;">{r['daily']:.2f} zł</td>
+            <td style="padding:20px 20px;text-align:right;color:{pct_color};font-weight:700;">{r['pct']:.1f}%</td>
+        </tr>"""
     
     st.html(f"""
     <table style="width:100%;border-collapse:collapse;font-family:'DM Sans',sans-serif;font-size:20px;">
