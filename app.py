@@ -291,7 +291,7 @@ if page == "Dashboard":
             {html_rows}
         </tbody>
     </table>
-    """
+    """)
     
     st.markdown("<br>", unsafe_allow_html=True)
     csv = pd.DataFrame([{
