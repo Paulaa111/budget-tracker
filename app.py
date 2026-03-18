@@ -253,14 +253,7 @@ if page == "Dashboard":
     sum_spent = sum(r["tot_sn"]  for r in rows)
     sum_rem   = sum_bud - sum_spent
     sum_daily = round(sum_rem/days_left, 2) if days_left > 0 else 0
-
-    k1,k2,k3,k4,k5 = st.columns(5)
-    with k1: kpi_card("Łączny budżet",  f"{sum_bud:.2f} zł",   "netto")
-    with k2: kpi_card("Łącznie wydano", f"{sum_spent:.2f} zł", f"brutto: {gross(sum_spent):.2f} zł")
-    with k3: kpi_card("Pozostało",      f"{sum_rem:.2f} zł",   "netto", accent=True)
-    with k4: kpi_card("Max dziennie",   f"{sum_daily:.2f} zł", f"na {days_left} dni")
-    with k5: kpi_card("Klientów",       str(len(rows)),        f"{calendar.month_name[sel_month]} {sel_year}")
-
+    
     section("Tabela zbiorcza")
     df = pd.DataFrame([{
        "Klient":        r["cname"],
@@ -286,7 +279,15 @@ if page == "Dashboard":
 
     import plotly.express as px
     import plotly.graph_objects as go
+    
+    k1,k2,k3,k4,k5 = st.columns(5)
+    with k1: kpi_card("Łączny budżet",  f"{sum_bud:.2f} zł",   "netto")
+    with k2: kpi_card("Łącznie wydano", f"{sum_spent:.2f} zł", f"brutto: {gross(sum_spent):.2f} zł")
+    with k3: kpi_card("Pozostało",      f"{sum_rem:.2f} zł",   "netto", accent=True)
+    with k4: kpi_card("Max dziennie",   f"{sum_daily:.2f} zł", f"na {days_left} dni")
+    with k5: kpi_card("Klientów",       str(len(rows)),        f"{calendar.month_name[sel_month]} {sel_year}")
 
+    
     section("Wykresy")
     col_chart1, col_chart2 = st.columns(2)
     df_chart = pd.DataFrame([{"Klient":r["cname"],"Google":r["g_sn"],"Meta":r["fb_sn"],"Budżet":r["total_n"]} for r in rows])
