@@ -255,33 +255,55 @@ if page == "Dashboard":
     sum_daily = round(sum_rem/days_left, 2) if days_left > 0 else 0
     
     section("Tabela zbiorcza")
-    df = pd.DataFrame([{
-       "Klient":        r["cname"],
-       "Budżet netto":  f"{r['total_n']:.2f}",
-       "Budżet brutto": f"{r['total_g']:.2f}",
-       "Google wydano": f"{r['g_sn']:.2f}",
-       "Meta wydano":   f"{r['fb_sn']:.2f}",
-       "Razem wydano":  f"{r['tot_sn']:.2f}",
-       "Razem brutto":  f"{r['tot_sg']:.2f}",
-       "Pozostało":     f"{r['rem_n']:.2f}",
-       "Max dziennie":  f"{r['daily']:.2f}",
-       "% budżetu":     f"{r['pct']:.1f}%",
-    } for r in rows])
+    html_rows = ""
+    for r in rows:
+        html_rows += f"""
+        <tr>
+            <td>{r['cname']}</td>
+            <td>{r['total_n']:.2f}</td>
+            <td>{r['total_g']:.2f}</td>
+            <td>{r['g_sn']:.2f}</td>
+            <td>{r['fb_sn']:.2f}</td>
+            <td>{r['tot_sn']:.2f}</td>
+            <td>{r['tot_sg']:.2f}</td>
+            <td style="color:#8878f0;font-weight:bold;">{r['rem_n']:.2f}</td>
+            <td style="color:#8878f0;font-weight:bold;">{r['daily']:.2f}</td>
+            <td style="color:#8878f0;font-weight:bold;">{r['pct']:.1f}%</td>
+        </tr>"""
     
-    st.markdown("""
-    <style>
-    [data-testid="stDataFrame"] td { font-size: 25px !important; padding: 14px 18px !important; }
-    [data-testid="stDataFrame"] th { font-size: 25px !important; padding: 14px 18px !important; }
-    iframe { min-height: 500px !important; }
-    </style>
+    st.markdown(f"""
+    <table style="width:100%;border-collapse:collapse;font-size:18px;font-family:'DM Sans',sans-serif;">
+        <thead>
+            <tr style="background:#2a3a5a;color:#ffffff;">
+                <th style="padding:14px 16px;text-align:left;">Klient</th>
+                <th style="padding:14px 16px;text-align:right;">Budżet netto</th>
+                <th style="padding:14px 16px;text-align:right;">Budżet brutto</th>
+                <th style="padding:14px 16px;text-align:right;">Google wydano</th>
+                <th style="padding:14px 16px;text-align:right;">Meta wydano</th>
+                <th style="padding:14px 16px;text-align:right;">Razem wydano</th>
+                <th style="padding:14px 16px;text-align:right;">Razem brutto</th>
+                <th style="padding:14px 16px;text-align:right;color:#8878f0;">Pozostało</th>
+                <th style="padding:14px 16px;text-align:right;color:#8878f0;">Max dziennie</th>
+                <th style="padding:14px 16px;text-align:right;color:#8878f0;">% budżetu</th>
+            </tr>
+        </thead>
+        <tbody style="background:#3a4a6a;">
+            {html_rows}
+        </tbody>
+    </table>
     """, unsafe_allow_html=True)
-    st.dataframe(
-        df.style
-          .set_properties(subset=["Pozostało", "Max dziennie", "% budżetu"],
-                          **{"background-color": "#1e2d4a", "font-weight": "bold", "color": "#8878f0"}),
-        use_container_width=True, hide_index=True, height=400
-    )
-    csv = df.to_csv(index=False, sep=";", decimal=",").encode("utf-8-sig")
+    
+    st.markdown("<br>", unsafe_allow_html=True)
+    csv = pd.DataFrame([{{
+        "Klient": r["cname"],
+        "Budżet netto": r["total_n"],
+        "Google wydano": r["g_sn"],
+        "Meta wydano": r["fb_sn"],
+        "Razem wydano": r["tot_sn"],
+        "Pozostało": r["rem_n"],
+        "Max dziennie": r["daily"],
+        "% budżetu": r["pct"],
+    }} for r in rows]).to_csv(index=False, sep=";", decimal=",").encode("utf-8-sig")
     st.download_button("⬇️ Pobierz CSV", csv, file_name=f"ermon_budgety_{period}.csv", mime="text/csv")
 
     import plotly.express as px
