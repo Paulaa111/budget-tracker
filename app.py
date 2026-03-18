@@ -294,7 +294,7 @@ if page == "Dashboard":
     """, unsafe_allow_html=True)
     
     st.markdown("<br>", unsafe_allow_html=True)
-    csv = pd.DataFrame([{{
+    csv = pd.DataFrame([{
         "Klient": r["cname"],
         "Budżet netto": r["total_n"],
         "Google wydano": r["g_sn"],
@@ -303,7 +303,7 @@ if page == "Dashboard":
         "Pozostało": r["rem_n"],
         "Max dziennie": r["daily"],
         "% budżetu": r["pct"],
-    }} for r in rows]).to_csv(index=False, sep=";", decimal=",").encode("utf-8-sig")
+    } for r in rows]).to_csv(index=False, sep=";", decimal=",").encode("utf-8-sig")
     st.download_button("⬇️ Pobierz CSV", csv, file_name=f"ermon_budgety_{period}.csv", mime="text/csv")
 
     import plotly.express as px
