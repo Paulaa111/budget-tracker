@@ -249,26 +249,19 @@ if page == "Dashboard":
 
     section("Tabela zbiorcza")
     df = pd.DataFrame([{
-        "Klient":        r["cname"],
-        "Budżet netto":  r["total_n"],
-        "Budżet brutto": r["total_g"],
-        "Google wydano": r["g_sn"],
-        "Meta wydano":   r["fb_sn"],
-        "Razem wydano":  r["tot_sn"],
-        "Razem brutto":  r["tot_sg"],
-        "Pozostało":     r["rem_n"],
-        "Max dziennie":  r["daily"],
-        "% budżetu":     r["pct"],
+       "Klient":        r["cname"],
+       "Budżet netto":  f"{r['total_n']:.2f}",
+       "Budżet brutto": f"{r['total_g']:.2f}",
+       "Google wydano": f"{r['g_sn']:.2f}",
+       "Meta wydano":   f"{r['fb_sn']:.2f}",
+       "Razem wydano":  f"{r['tot_sn']:.2f}",
+       "Razem brutto":  f"{r['tot_sg']:.2f}",
+       "Pozostało":     f"{r['rem_n']:.2f}",
+       "Max dziennie":  f"{r['daily']:.2f}",
+       "% budżetu":     f"{r['pct']:.1f}%",
     } for r in rows])
-    
-    
-    st.dataframe(
-        df.style
-          .format({c: lambda x: f"{x:.2f}" for c in df.columns if c not in ["Klient","% budżetu"]})
-          .format({"% budżetu": "{:.1f}%"})
-          .background_gradient(subset=["% budżetu"], cmap="RdYlGn_r", vmin=0, vmax=100),
-        use_container_width=True, hide_index=True, height=400,
-    )
+
+    st.dataframe(df, use_container_width=True, hide_index=True, height=400)
     csv = df.to_csv(index=False, sep=";", decimal=",").encode("utf-8-sig")
     st.download_button("⬇️ Pobierz CSV", csv, file_name=f"ermon_budgety_{period}.csv", mime="text/csv")
 
