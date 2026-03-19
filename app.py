@@ -71,7 +71,6 @@ def load_spend():
         if not data:
             return pd.DataFrame(columns=["klient","miesiac","google_spend","meta_spend"])
         df = pd.DataFrame(data)
-
         def clean_value(val, divide_by_100=False):
             if isinstance(val, (int, float)):
                 result = float(val)
@@ -79,15 +78,10 @@ def load_spend():
                     result = result / 100
                 return round(result, 2)
             s = str(val).strip()
-            # usuń spacje i niełamliwe spacje
             s = s.replace('\xa0', '').replace('\u00a0', '').replace(' ', '')
-            # format angielski: 1,542.92 - usuń przecinek (separator tysięcy), zostaw kropkę
-            # format polski: 1 542,92 - usuń spację, zamień przecinek na kropkę
             if '.' in s and ',' in s:
-                # mamy oba - przecinek to separator tysięcy, kropka to dziesiętna
                 s = s.replace(',', '')
             elif ',' in s and '.' not in s:
-                # tylko przecinek - to separator dziesiętny
                 s = s.replace(',', '.')
             s = re.sub(r'[^0-9.]', '', s)
             try:
@@ -97,7 +91,6 @@ def load_spend():
                 return round(result, 2)
             except:
                 return 0.0
-
         df["google_spend"] = df["google_spend"].apply(lambda x: clean_value(x, divide_by_100=False))
         df["meta_spend"]   = df["meta_spend"].apply(lambda x: clean_value(x, divide_by_100=False))
         return df
@@ -136,66 +129,236 @@ def get_logo_base64():
 
 LOGO_B64 = get_logo_base64()
 
+# ── DESIGN SYSTEM ─────────────────────────────────────────────────────────────
+# Brand: #2c016d (deep violet), #ff466b (coral red), #3337bd (electric blue)
+# Aesthetic: Dark luxury editorial — high contrast, sharp typography, confident spacing
+
 st.markdown(f"""
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap');
-html, body, [class*="css"] {{ font-family: 'DM Sans', sans-serif; background-color: #1a1a2e; color: #e8e8f5; }}
-section[data-testid="stSidebar"] {{ background: #16213e !important; border-right: 1px solid #2a2a4a; min-width: 220px !important; }}
-section[data-testid="stSidebar"] label {{ font-size: 1rem !important; padding: 8px 0 !important; }}
-.main .block-container {{ padding: 2rem 2.5rem; max-width: 1600px; }}
-.ermon-logo-wrap {{ padding: 1.5rem 1.2rem 1rem; border-bottom: 1px solid #2a2a4a; margin-bottom: 1rem; }}
-.ermon-logo-wrap img {{ width: 130px; filter: brightness(0) invert(1); }}
-.ermon-tagline {{ font-family:'DM Sans',sans-serif; font-size:0.7rem; letter-spacing:0.15em; color:#7070b0; text-transform:uppercase; margin-top:6px; }}
-.ermon-page-title {{ font-family:'Syne',sans-serif; font-size:2rem; font-weight:800; color:#ffffff; letter-spacing:-0.03em; margin-bottom:0.2rem; }}
-.ermon-page-subtitle {{ font-size:0.8rem; color:#7070a0; margin-bottom:2rem; letter-spacing:0.08em; text-transform:uppercase; }}
-.kpi-card {{ background:linear-gradient(135deg,#1e1e3a,#252545); border:1px solid #2e2e5a; border-radius:16px; padding:1.4rem 1.6rem; transition:border-color .3s,transform .2s; margin-bottom:1rem; }}
-.kpi-card:hover {{ border-color:#4040a0; transform:translateY(-2px); }}
-.kpi-label {{ font-size:0.7rem; letter-spacing:0.12em; text-transform:uppercase; color:#7070a0; margin-bottom:0.5rem; }}
-.kpi-value {{ font-family:'Syne',sans-serif; font-size:1.65rem; font-weight:700; color:#ffffff; line-height:1; }}
-.kpi-value-accent {{ color:#8878f0; }}
-.kpi-sub {{ font-size:0.72rem; color:#8080b0; margin-top:0.3rem; }}
-.section-header {{ font-family:'Syne',sans-serif; font-size:0.85rem; font-weight:700; color:#8080c0; letter-spacing:0.14em; text-transform:uppercase; border-bottom:1px solid #2a2a4a; padding-bottom:0.5rem; margin:1.8rem 0 1.2rem; }}
-.stButton > button {{ background:linear-gradient(135deg,#2D1B8E,#4428c0) !important; color:white !important; border:none !important; border-radius:8px !important; font-family:'DM Sans',sans-serif !important; font-weight:500 !important; transition:opacity .2s !important; }}
-.stButton > button:hover {{ opacity:0.82 !important; }}
-hr {{ border-color:#2a2a4a !important; }}
-.stDataFrame {{ font-size: 16px !important; }}
-.stDataFrame td {{ font-size: 16px !important; padding: 14px 18px !important; background-color: #3a4a6a !important; }}
-.stDataFrame th {{ font-size: 16px !important; padding: 14px 18px !important; background-color: #2a3a5a !important; color: #ffffff !important; }}
+@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,300&display=swap');
+
+:root {{
+  --violet:  #2c016d;
+  --coral:   #ff466b;
+  --blue:    #3337bd;
+  --bg:      #0c0c18;
+  --surface: #13132a;
+  --surface2:#1a1a35;
+  --border:  #2a2a50;
+  --text:    #e8e8f5;
+  --muted:   #6060a0;
+  --white:   #ffffff;
+}}
+
+html, body, [class*="css"] {{
+    font-family: 'DM Sans', sans-serif;
+    background-color: var(--bg);
+    color: var(--text);
+}}
+
+/* ── SIDEBAR ── */
+section[data-testid="stSidebar"] {{
+    background: var(--surface) !important;
+    border-right: 1px solid var(--border);
+}}
+section[data-testid="stSidebar"] > div {{
+    padding: 0 !important;
+}}
+.sidebar-logo {{
+    padding: 2rem 1.5rem 1.5rem;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 0.5rem;
+}}
+.sidebar-logo img {{
+    width: 110px;
+    filter: brightness(0) invert(1);
+}}
+.sidebar-tagline {{
+    font-size: 0.65rem;
+    letter-spacing: 0.2em;
+    color: var(--muted);
+    text-transform: uppercase;
+    margin-top: 8px;
+    font-family: 'DM Sans', sans-serif;
+}}
+section[data-testid="stSidebar"] .stRadio {{
+    padding: 0 1rem;
+}}
+section[data-testid="stSidebar"] .stRadio label {{
+    font-family: 'DM Sans', sans-serif !important;
+    font-size: 1rem !important;
+    font-weight: 500 !important;
+    color: var(--muted) !important;
+    padding: 0.75rem 1rem !important;
+    border-radius: 8px !important;
+    margin: 2px 0 !important;
+    transition: all 0.2s !important;
+    display: block !important;
+    letter-spacing: 0.02em !important;
+}}
+section[data-testid="stSidebar"] .stRadio label:hover {{
+    color: var(--white) !important;
+    background: rgba(255,70,107,0.08) !important;
+}}
+section[data-testid="stSidebar"] .stRadio [data-checked="true"] label,
+section[data-testid="stSidebar"] .stRadio label[aria-checked="true"] {{
+    color: var(--white) !important;
+    background: linear-gradient(135deg, rgba(44,1,109,0.6), rgba(51,55,189,0.3)) !important;
+    border-left: 3px solid var(--coral) !important;
+}}
+
+/* ── MAIN ── */
+.main .block-container {{
+    padding: 2.5rem 3rem;
+    max-width: 1700px;
+}}
+
+/* ── PAGE HEADER ── */
+.page-title {{
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 3.5rem;
+    color: var(--white);
+    letter-spacing: 0.05em;
+    line-height: 1;
+    margin-bottom: 0.1rem;
+}}
+.page-subtitle {{
+    font-size: 0.75rem;
+    color: var(--muted);
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    margin-bottom: 2.5rem;
+}}
+
+/* ── SECTION HEADER ── */
+.section-hdr {{
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: var(--muted);
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 0.6rem;
+    margin: 2.5rem 0 1.5rem;
+}}
+
+/* ── KPI CARDS ── */
+.kpi {{
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 1.5rem 1.8rem;
+    position: relative;
+    overflow: hidden;
+    transition: transform 0.2s, border-color 0.2s;
+    margin-bottom: 1rem;
+}}
+.kpi::after {{
+    content: '';
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, var(--violet), var(--coral));
+    opacity: 0;
+    transition: opacity 0.3s;
+}}
+.kpi:hover {{ transform: translateY(-3px); border-color: var(--blue); }}
+.kpi:hover::after {{ opacity: 1; }}
+.kpi-label {{
+    font-size: 0.65rem;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 0.6rem;
+    font-family: 'DM Sans', sans-serif;
+}}
+.kpi-value {{
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 2rem;
+    color: var(--white);
+    line-height: 1;
+    letter-spacing: 0.04em;
+}}
+.kpi-accent {{ color: var(--coral); }}
+.kpi-sub {{
+    font-size: 0.7rem;
+    color: var(--muted);
+    margin-top: 0.4rem;
+    font-family: 'DM Sans', sans-serif;
+}}
+
+/* ── BUTTONS ── */
+.stButton > button {{
+    background: linear-gradient(135deg, var(--violet), var(--blue)) !important;
+    color: white !important;
+    border: none !important;
+    border-radius: 8px !important;
+    font-family: 'DM Sans', sans-serif !important;
+    font-weight: 600 !important;
+    letter-spacing: 0.04em !important;
+    padding: 0.55rem 1.4rem !important;
+    transition: opacity 0.2s, transform 0.15s !important;
+}}
+.stButton > button:hover {{
+    opacity: 0.88 !important;
+    transform: translateY(-1px) !important;
+}}
+
+/* ── INPUTS ── */
+.stTextInput input, .stNumberInput input, .stSelectbox > div > div {{
+    background: var(--surface2) !important;
+    border: 1px solid var(--border) !important;
+    color: var(--text) !important;
+    border-radius: 8px !important;
+    font-family: 'DM Sans', sans-serif !important;
+}}
+
+/* ── MISC ── */
+hr {{ border-color: var(--border) !important; }}
+#MainMenu, footer, header {{ visibility: hidden; }}
+.stDataFrame {{ font-size: 15px !important; }}
 </style>
-<div class="ermon-logo-wrap">
-    {"<img src='data:image/png;base64," + LOGO_B64 + "' />" if LOGO_B64 else "<span style='font-family:Syne,sans-serif;font-size:1.4rem;font-weight:800;color:#fff;'>Ermon.</span>"}
-    <div class="ermon-tagline">Budget Tracker</div>
+
+<div class="sidebar-logo">
+    {"<img src='data:image/png;base64," + LOGO_B64 + "' />" if LOGO_B64 else "<span style='font-family:Bebas Neue,sans-serif;font-size:1.8rem;color:#fff;letter-spacing:0.05em;'>Ermon.</span>"}
+    <div class="sidebar-tagline">Budget Tracker</div>
 </div>
 """, unsafe_allow_html=True)
 
+# ── SIDEBAR ───────────────────────────────────────────────────────────────────
 menu_map = {
-    "🏠 Dashboard": "Dashboard",
-    "👥 Klienci": "Klienci",
-    "💰 Budżety": "Budżety",
-    "📥 Pobierz z API": "Pobierz",
-    "⚙️ Ustawienia API": "Ustawienia"
+    "Dashboard":    "Dashboard",
+    "Klienci":      "Klienci",
+    "Budżety":      "Budżety",
+    "Pobierz z API":"Pobierz",
+    "Ustawienia":   "Ustawienia",
 }
 
 with st.sidebar:
-    selection = st.radio("Menu", list(menu_map.keys()), label_visibility="collapsed")
+    selection = st.radio("", list(menu_map.keys()), label_visibility="collapsed")
     page = menu_map[selection]
     st.markdown("---")
     today = date.today()
     st.caption(f"📅 {today.strftime('%d.%m.%Y')}")
 
+# ── HELPERS ───────────────────────────────────────────────────────────────────
 def kpi_card(label, value, sub="", accent=False):
-    vc = "kpi-value kpi-value-accent" if accent else "kpi-value"
+    vc = "kpi-value kpi-accent" if accent else "kpi-value"
     sh = f'<div class="kpi-sub">{sub}</div>' if sub else ""
-    st.markdown(f'<div class="kpi-card"><div class="kpi-label">{label}</div><div class="{vc}">{value}</div>{sh}</div>', unsafe_allow_html=True)
+    st.markdown(f'<div class="kpi"><div class="kpi-label">{label}</div><div class="{vc}">{value}</div>{sh}</div>', unsafe_allow_html=True)
 
 def page_header(title, subtitle=""):
-    st.markdown(f'<div class="ermon-page-title">{title}</div>', unsafe_allow_html=True)
+    st.markdown(f'<div class="page-title">{title}</div>', unsafe_allow_html=True)
     if subtitle:
-        st.markdown(f'<div class="ermon-page-subtitle">{subtitle}</div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="page-subtitle">{subtitle}</div>', unsafe_allow_html=True)
 
 def section(title):
-    st.markdown(f'<div class="section-header">{title}</div>', unsafe_allow_html=True)
+    st.markdown(f'<div class="section-hdr">{title}</div>', unsafe_allow_html=True)
 
+# ══════════════════════════════════════════════════════════════════════════════
+# DASHBOARD
+# ══════════════════════════════════════════════════════════════════════════════
 if page == "Dashboard":
     page_header("Dashboard", "Przegląd budżetów reklamowych")
     clients_df = load_clients()
@@ -203,26 +366,24 @@ if page == "Dashboard":
     spend_df   = load_spend()
 
     if clients_df.empty:
-        st.info("Brak danych. Dodaj klientów w zakładce 👥 Klienci.")
+        st.info("Brak danych. Dodaj klientów w zakładce Klienci.")
         st.stop()
 
     cy, cm, _, _ = st.columns([1,1,1,2])
     sel_year  = cy.selectbox("Rok",  [today.year-1, today.year, today.year+1], index=1, key="dy")
-    sel_month = cm.selectbox("Miesiąc", range(1,13), index=today.month-1, format_func=lambda m: calendar.month_abbr[m], key="dm")
+    sel_month = cm.selectbox("Miesiąc", range(1,13), index=today.month-1,
+                             format_func=lambda m: calendar.month_abbr[m], key="dm")
     period    = f"{sel_year}-{sel_month:02d}"
     days_left = days_remaining(sel_year, sel_month)
 
-    # grupowanie klientów
     groups = {}
     for _, client in clients_df.iterrows():
         cname = client["nazwa"]
         grupa = str(client.get("grupa", cname)).strip() or cname
         gm    = str(client.get("typ_kwoty","netto")).lower() == "brutto"
-
         spnd_row = spend_df[(spend_df["klient"]==cname) & (spend_df["miesiac"]==period)]
         g_sn  = float(spnd_row["google_spend"].values[0]) if not spnd_row.empty else 0.0
         fb_sn = float(spnd_row["meta_spend"].values[0])   if not spnd_row.empty else 0.0
-
         if grupa not in groups:
             groups[grupa] = {"g_sn": 0.0, "fb_sn": 0.0, "gm": gm}
         groups[grupa]["g_sn"]  += g_sn
@@ -253,64 +414,61 @@ if page == "Dashboard":
     sum_spent = sum(r["tot_sn"]  for r in rows)
     sum_rem   = sum_bud - sum_spent
     sum_daily = round(sum_rem/days_left, 2) if days_left > 0 else 0
-    
+
+    # ── TABELA ──
     section("Tabela zbiorcza")
     html_rows = ""
     for i, r in enumerate(rows):
-        bg = "#232d42" if i % 2 == 0 else "#1a2236"
-        pct_color = "#2ecc88" if r['pct'] < 75 else ("#f0b030" if r['pct'] < 95 else "#e03060")
+        bg = "#13132a" if i % 2 == 0 else "#0f0f22"
+        pct_color = "#00e5a0" if r['pct'] < 75 else ("#ffb800" if r['pct'] < 95 else "#ff466b")
         html_rows += f"""
-        <tr style="background:{bg};border-bottom:1px solid #3a4a6a;">
-            <td style="padding:20px 20px;font-weight:600;color:#ffffff;border-right:1px solid #3a4a6a;">{r['cname']}</td>
-            <td style="padding:20px 20px;text-align:right;border-right:1px solid #3a4a6a;">{r['total_n']:.2f} zł</td>
-            <td style="padding:20px 20px;text-align:right;border-right:1px solid #3a4a6a;color:#8080b0;">{r['total_g']:.2f} zł</td>
-            <td style="padding:20px 20px;text-align:right;border-right:1px solid #3a4a6a;color:#4285F4;">{r['g_sn']:.2f} zł</td>
-            <td style="padding:20px 20px;text-align:right;border-right:1px solid #3a4a6a;color:#1877F2;">{r['fb_sn']:.2f} zł</td>
-            <td style="padding:20px 20px;text-align:right;border-right:1px solid #3a4a6a;font-weight:600;">{r['tot_sn']:.2f} zł</td>
-            <td style="padding:20px 20px;text-align:right;border-right:1px solid #3a4a6a;color:#8080b0;">{r['tot_sg']:.2f} zł</td>
-            <td style="padding:20px 20px;text-align:right;border-right:1px solid #3a4a6a;color:#8878f0;font-weight:600;">{r['rem_n']:.2f} zł</td>
-            <td style="padding:20px 20px;text-align:right;border-right:1px solid #3a4a6a;color:#8878f0;font-weight:600;">{r['daily']:.2f} zł</td>
-            <td style="padding:20px 20px;text-align:right;color:{pct_color};font-weight:700;">{r['pct']:.1f}%</td>
+        <tr style="background:{bg};border-bottom:1px solid #2a2a50;">
+            <td style="padding:22px 24px;font-weight:600;color:#ffffff;border-right:1px solid #2a2a50;font-size:17px;">{r['cname']}</td>
+            <td style="padding:22px 24px;text-align:right;border-right:1px solid #2a2a50;font-size:17px;">{r['total_n']:.2f} zł</td>
+            <td style="padding:22px 24px;text-align:right;border-right:1px solid #2a2a50;color:#6060a0;font-size:17px;">{r['total_g']:.2f} zł</td>
+            <td style="padding:22px 24px;text-align:right;border-right:1px solid #2a2a50;color:#5b8af5;font-size:17px;">{r['g_sn']:.2f} zł</td>
+            <td style="padding:22px 24px;text-align:right;border-right:1px solid #2a2a50;color:#4a6fd4;font-size:17px;">{r['fb_sn']:.2f} zł</td>
+            <td style="padding:22px 24px;text-align:right;border-right:1px solid #2a2a50;font-weight:600;font-size:17px;">{r['tot_sn']:.2f} zł</td>
+            <td style="padding:22px 24px;text-align:right;border-right:1px solid #2a2a50;color:#6060a0;font-size:17px;">{r['tot_sg']:.2f} zł</td>
+            <td style="padding:22px 24px;text-align:right;border-right:1px solid #2a2a50;color:#a080ff;font-weight:600;font-size:17px;">{r['rem_n']:.2f} zł</td>
+            <td style="padding:22px 24px;text-align:right;border-right:1px solid #2a2a50;color:#a080ff;font-weight:600;font-size:17px;">{r['daily']:.2f} zł</td>
+            <td style="padding:22px 24px;text-align:right;color:{pct_color};font-weight:700;font-size:17px;font-family:'Bebas Neue',sans-serif;letter-spacing:0.05em;">{r['pct']:.1f}%</td>
         </tr>"""
-    
+
     st.html(f"""
-    <table style="width:100%;border-collapse:separate;border-spacing:0;font-family:'DM Sans',sans-serif;font-size:18px;border-radius:12px;overflow:hidden;">
+    <style>@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@400;500;600&display=swap');</style>
+    <div style="border-radius:16px;overflow:hidden;border:1px solid #2a2a50;box-shadow:0 8px 32px rgba(0,0,0,0.4);">
+    <table style="width:100%;border-collapse:collapse;font-family:'DM Sans',sans-serif;">
         <thead>
-            <tr style="background:#1e2d4a;color:#a0b0d0;font-size:13px;letter-spacing:0.1em;text-transform:uppercase;">
-                <th style="padding:16px 20px;text-align:left;border-bottom:2px solid #4a5a7a;">Klient</th>
-                <th style="padding:16px 20px;text-align:right;border-bottom:2px solid #4a5a7a;">Budżet netto</th>
-                <th style="padding:16px 20px;text-align:right;border-bottom:2px solid #4a5a7a;">Budżet brutto</th>
-                <th style="padding:16px 20px;text-align:right;border-bottom:2px solid #4a5a7a;">Google wydano</th>
-                <th style="padding:16px 20px;text-align:right;border-bottom:2px solid #4a5a7a;">Meta wydano</th>
-                <th style="padding:16px 20px;text-align:right;border-bottom:2px solid #4a5a7a;">Razem wydano</th>
-                <th style="padding:16px 20px;text-align:right;border-bottom:2px solid #4a5a7a;">Razem brutto</th>
-                <th style="padding:16px 20px;text-align:right;border-bottom:2px solid #4a5a7a;color:#8878f0;">Pozostało</th>
-                <th style="padding:16px 20px;text-align:right;border-bottom:2px solid #4a5a7a;color:#8878f0;">Max dziennie</th>
-                <th style="padding:16px 20px;text-align:right;border-bottom:2px solid #4a5a7a;color:#8878f0;">% budżetu</th>
+            <tr style="background:linear-gradient(135deg,#2c016d,#3337bd);color:rgba(255,255,255,0.7);font-size:11px;letter-spacing:0.18em;text-transform:uppercase;">
+                <th style="padding:18px 24px;text-align:left;border-bottom:1px solid rgba(255,255,255,0.1);">Klient</th>
+                <th style="padding:18px 24px;text-align:right;border-bottom:1px solid rgba(255,255,255,0.1);">Budżet netto</th>
+                <th style="padding:18px 24px;text-align:right;border-bottom:1px solid rgba(255,255,255,0.1);">Budżet brutto</th>
+                <th style="padding:18px 24px;text-align:right;border-bottom:1px solid rgba(255,255,255,0.1);">Google</th>
+                <th style="padding:18px 24px;text-align:right;border-bottom:1px solid rgba(255,255,255,0.1);">Meta</th>
+                <th style="padding:18px 24px;text-align:right;border-bottom:1px solid rgba(255,255,255,0.1);">Razem netto</th>
+                <th style="padding:18px 24px;text-align:right;border-bottom:1px solid rgba(255,255,255,0.1);">Razem brutto</th>
+                <th style="padding:18px 24px;text-align:right;border-bottom:1px solid rgba(255,255,255,0.1);color:#c0a0ff;">Pozostało</th>
+                <th style="padding:18px 24px;text-align:right;border-bottom:1px solid rgba(255,255,255,0.1);color:#c0a0ff;">Max dziennie</th>
+                <th style="padding:18px 24px;text-align:right;border-bottom:1px solid rgba(255,255,255,0.1);color:#ff9090;">% budżetu</th>
             </tr>
         </thead>
-        <tbody>
-            {html_rows}
-        </tbody>
+        <tbody>{html_rows}</tbody>
     </table>
+    </div>
     """)
-    
+
     st.markdown("<br>", unsafe_allow_html=True)
     csv = pd.DataFrame([{
-        "Klient": r["cname"],
-        "Budżet netto": r["total_n"],
-        "Google wydano": r["g_sn"],
-        "Meta wydano": r["fb_sn"],
-        "Razem wydano": r["tot_sn"],
-        "Pozostało": r["rem_n"],
-        "Max dziennie": r["daily"],
-        "% budżetu": r["pct"],
+        "Klient": r["cname"], "Budżet netto": r["total_n"],
+        "Google wydano": r["g_sn"], "Meta wydano": r["fb_sn"],
+        "Razem wydano": r["tot_sn"], "Pozostało": r["rem_n"],
+        "Max dziennie": r["daily"], "% budżetu": r["pct"],
     } for r in rows]).to_csv(index=False, sep=";", decimal=",").encode("utf-8-sig")
-    st.download_button("⬇️ Pobierz CSV", csv, file_name=f"ermon_budgety_{period}.csv", mime="text/csv")
+    st.download_button("Pobierz CSV", csv, file_name=f"ermon_budgety_{period}.csv", mime="text/csv")
 
-    import plotly.express as px
-    import plotly.graph_objects as go
-    
+    # ── KPI ──
+    section("Podsumowanie")
     k1,k2,k3,k4,k5 = st.columns(5)
     with k1: kpi_card("Łączny budżet",  f"{sum_bud:.2f} zł",   "netto")
     with k2: kpi_card("Łącznie wydano", f"{sum_spent:.2f} zł", f"brutto: {gross(sum_spent):.2f} zł")
@@ -318,32 +476,38 @@ if page == "Dashboard":
     with k4: kpi_card("Max dziennie",   f"{sum_daily:.2f} zł", f"na {days_left} dni")
     with k5: kpi_card("Klientów",       str(len(rows)),        f"{calendar.month_name[sel_month]} {sel_year}")
 
-    
+    # ── WYKRESY ──
+    import plotly.express as px
+    import plotly.graph_objects as go
+
     section("Wykresy")
     col_chart1, col_chart2 = st.columns(2)
     df_chart = pd.DataFrame([{"Klient":r["cname"],"Google":r["g_sn"],"Meta":r["fb_sn"],"Budżet":r["total_n"]} for r in rows])
 
     with col_chart1:
         fig1 = go.Figure()
-        fig1.add_trace(go.Bar(name="Google", x=df_chart["Klient"], y=df_chart["Google"], marker_color="#4285F4"))
-        fig1.add_trace(go.Bar(name="Meta",   x=df_chart["Klient"], y=df_chart["Meta"],   marker_color="#1877F2"))
+        fig1.add_trace(go.Bar(name="Google", x=df_chart["Klient"], y=df_chart["Google"], marker_color="#3337bd"))
+        fig1.add_trace(go.Bar(name="Meta",   x=df_chart["Klient"], y=df_chart["Meta"],   marker_color="#ff466b"))
         fig1.add_trace(go.Scatter(name="Budżet", x=df_chart["Klient"], y=df_chart["Budżet"],
-                                  mode="markers", marker=dict(color="#f0b030", size=12, symbol="line-ew-open", line=dict(width=3))))
+                                  mode="markers", marker=dict(color="#ffffff", size=10, symbol="line-ew-open", line=dict(width=3))))
         fig1.update_layout(title="Wydatki vs Budżet", barmode="stack",
                            paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
-                           font=dict(color="#e0e0f0", family="DM Sans"),
+                           font=dict(color="#a0a0c0", family="DM Sans"),
                            legend=dict(bgcolor="rgba(0,0,0,0)"),
-                           xaxis=dict(gridcolor="#2a2a4a"), yaxis=dict(gridcolor="#2a2a4a"), height=380)
+                           xaxis=dict(gridcolor="#1e1e3a"), yaxis=dict(gridcolor="#1e1e3a"), height=380)
         st.plotly_chart(fig1, use_container_width=True)
 
     with col_chart2:
         df_pie = pd.DataFrame([{"Klient":r["cname"],"Wydano":r["tot_sn"]} for r in rows if r["tot_sn"]>0])
         if not df_pie.empty:
             fig2 = px.pie(df_pie, names="Klient", values="Wydano", title="Podział wydatków",
-                          color_discrete_sequence=["#2D1B8E","#4428c0","#6040d0","#8060e0","#a080f0"])
-            fig2.update_layout(paper_bgcolor="rgba(0,0,0,0)", font=dict(color="#e0e0f0", family="DM Sans"), height=380)
+                          color_discrete_sequence=["#2c016d","#3337bd","#ff466b","#7040d0","#ff8099"])
+            fig2.update_layout(paper_bgcolor="rgba(0,0,0,0)", font=dict(color="#a0a0c0", family="DM Sans"), height=380)
             st.plotly_chart(fig2, use_container_width=True)
 
+# ══════════════════════════════════════════════════════════════════════════════
+# KLIENCI
+# ══════════════════════════════════════════════════════════════════════════════
 elif page == "Klienci":
     page_header("Klienci", "Zarządzanie bazą klientów")
     col1, col2 = st.columns([1,2])
@@ -355,7 +519,7 @@ elif page == "Klienci":
             mcc_id = st.text_input("MCC ID (konto menedżera)", placeholder="1234567890")
             fb_id  = st.text_input("Meta Ads Account ID", placeholder="act_123456789")
             typ    = st.selectbox("Typ kwoty budżetu", ["netto","brutto"])
-            submit = st.form_submit_button("➕ Dodaj klienta", use_container_width=True)
+            submit = st.form_submit_button("Dodaj klienta", use_container_width=True)
         if submit and name.strip():
             save_client(name.strip(), g_id.strip(), fb_id.strip(), typ, mcc_id.strip())
             st.cache_resource.clear()
@@ -368,26 +532,30 @@ elif page == "Klienci":
             st.info("Brak klientów.")
         else:
             for _, row in clients_df.iterrows():
-                with st.expander(f"📌 {row['nazwa']}"):
+                with st.expander(f"{row['nazwa']}"):
                     c1,c2,c3 = st.columns(3)
                     c1.write(f"**Google Ads:** {row.get('google_ads_id') or '—'}")
                     c2.write(f"**Meta Ads:** {row.get('meta_ads_id') or '—'}")
                     c3.write(f"**Typ kwoty:** {row.get('typ_kwoty','netto')}")
-                    if st.button("🗑️ Usuń", key=f"del_{row['nazwa']}"):
+                    if st.button("Usuń", key=f"del_{row['nazwa']}"):
                         delete_client(row['nazwa'])
                         st.cache_resource.clear()
                         st.rerun()
 
+# ══════════════════════════════════════════════════════════════════════════════
+# BUDŻETY
+# ══════════════════════════════════════════════════════════════════════════════
 elif page == "Budżety":
     page_header("Budżety", "Ustawianie budżetów miesięcznych")
     clients_df = load_clients()
     if clients_df.empty:
         st.warning("Najpierw dodaj klientów.")
         st.stop()
-    sel_client = st.selectbox("Klient", clients_df["nazwa"].tolist())
+    sel_client = st.selectbox("Klient / Grupa", clients_df["nazwa"].tolist())
     c1,c2 = st.columns(2)
     sel_year  = c1.selectbox("Rok",  [today.year-1,today.year,today.year+1], index=1)
-    sel_month = c2.selectbox("Miesiąc", range(1,13), index=today.month-1, format_func=lambda m: calendar.month_name[m])
+    sel_month = c2.selectbox("Miesiąc", range(1,13), index=today.month-1,
+                             format_func=lambda m: calendar.month_name[m])
     period = f"{sel_year}-{sel_month:02d}"
     budgets_df  = load_budgets()
     existing    = budgets_df[(budgets_df["klient"]==sel_client) & (budgets_df["miesiac"]==period)]
@@ -395,21 +563,25 @@ elif page == "Budżety":
     section(f"Budżet — {calendar.month_name[sel_month]} {sel_year}")
     with st.form("set_budget"):
         budzet = st.number_input("Łączny budżet (zł)", min_value=0.0, step=100.0, value=current_val)
-        saved  = st.form_submit_button("💾 Zapisz", use_container_width=True)
+        saved  = st.form_submit_button("Zapisz", use_container_width=True)
     if saved:
         save_budget(sel_client, period, budzet)
-        st.success("Zapisano w Google Sheets! ✅")
+        st.success("Zapisano w Google Sheets!")
         st.rerun()
 
+# ══════════════════════════════════════════════════════════════════════════════
+# POBIERZ Z API
+# ══════════════════════════════════════════════════════════════════════════════
 elif page == "Pobierz":
     page_header("Pobierz dane z API", "Synchronizacja z Google Ads i Meta Ads")
     clients_df = load_clients()
     c1,c2 = st.columns(2)
     sel_year2  = c1.selectbox("Rok",  [today.year-1,today.year,today.year+1], index=1)
-    sel_month2 = c2.selectbox("Miesiąc", range(1,13), index=today.month-1, format_func=lambda m: calendar.month_name[m])
+    sel_month2 = c2.selectbox("Miesiąc", range(1,13), index=today.month-1,
+                              format_func=lambda m: calendar.month_name[m])
     period2 = f"{sel_year2}-{sel_month2:02d}"
 
-    if st.button("🔄 Pobierz dla wszystkich klientów", use_container_width=True, type="primary"):
+    if st.button("Pobierz dla wszystkich klientów", use_container_width=True, type="primary"):
         from google.ads.googleads.client import GoogleAdsClient
         from google.ads.googleads.errors import GoogleAdsException
         from facebook_business.api import FacebookAdsApi
@@ -454,11 +626,11 @@ elif page == "Pobierz":
                     response = ga_service.search_stream(customer_id=g_id.replace("-",""), query=query)
                     total_micros = sum(row.metrics.cost_micros for batch in response for row in batch.results)
                     g_net = round(total_micros / 1_000_000, 2)
-                    g_msg = "✅ OK"
+                    g_msg = "OK"
                 except GoogleAdsException as e:
-                    g_msg = f"❌ {e.error.code().name}"
+                    g_msg = f"Błąd: {e.error.code().name}"
                 except Exception as e:
-                    g_msg = f"❌ {str(e)[:50]}"
+                    g_msg = f"Błąd: {str(e)[:50]}"
 
             if fb_id:
                 try:
@@ -469,17 +641,20 @@ elif page == "Pobierz":
                         "level": "account",
                     })
                     fb_net = round(sum(float(r["spend"]) for r in insights if "spend" in r), 2)
-                    fb_msg = "✅ OK"
+                    fb_msg = "OK"
                 except Exception as e:
-                    fb_msg = f"❌ {str(e)[:50]}"
+                    fb_msg = f"Błąd: {str(e)[:50]}"
 
             save_spend(cname, period2, g_net, fb_net)
             results.append({"Klient":cname,"Google":g_msg,"G netto":f"{g_net:.2f} zł","Meta":fb_msg,"FB netto":f"{fb_net:.2f} zł"})
             progress.progress((i+1)/len(clients_df))
 
-        st.success("Zaktualizowano! Przejdź do Dashboard. ✅")
+        st.success("Zaktualizowano! Przejdź do Dashboard.")
         st.dataframe(pd.DataFrame(results), use_container_width=True, hide_index=True)
 
+# ══════════════════════════════════════════════════════════════════════════════
+# USTAWIENIA
+# ══════════════════════════════════════════════════════════════════════════════
 elif page == "Ustawienia":
     page_header("Ustawienia API", "Konfiguracja połączeń z platformami reklamowymi")
     st.info("Tokeny API wpisuj w Streamlit Cloud → Settings → Secrets — nigdy w kodzie!")
