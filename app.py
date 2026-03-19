@@ -424,15 +424,15 @@ if page == "Dashboard":
         html_rows += f"""
         <tr style="background:{bg};border-bottom:1px solid #2a2a50;">
             <td style="padding:22px 24px;font-weight:600;color:#ffffff;border-right:1px solid #2a2a50;font-size:17px;">{r['cname']}</td>
-            <td style="padding:22px 24px;text-align:right;border-right:1px solid #2a2a50;font-size:17px;">{r['total_n']:.2f} zł</td>
-            <td style="padding:22px 24px;text-align:right;border-right:1px solid #2a2a50;color:#6060a0;font-size:17px;">{r['total_g']:.2f} zł</td>
-            <td style="padding:22px 24px;text-align:right;border-right:1px solid #2a2a50;color:#5b8af5;font-size:17px;">{r['g_sn']:.2f} zł</td>
-            <td style="padding:22px 24px;text-align:right;border-right:1px solid #2a2a50;color:#4a6fd4;font-size:17px;">{r['fb_sn']:.2f} zł</td>
-            <td style="padding:22px 24px;text-align:right;border-right:1px solid #2a2a50;font-weight:600;font-size:17px;">{r['tot_sn']:.2f} zł</td>
-            <td style="padding:22px 24px;text-align:right;border-right:1px solid #2a2a50;color:#6060a0;font-size:17px;">{r['tot_sg']:.2f} zł</td>
-            <td style="padding:22px 24px;text-align:right;border-right:1px solid #2a2a50;color:#a080ff;font-weight:600;font-size:17px;">{r['rem_n']:.2f} zł</td>
-            <td style="padding:22px 24px;text-align:right;border-right:1px solid #2a2a50;color:#a080ff;font-weight:600;font-size:17px;">{r['daily']:.2f} zł</td>
-            <td style="padding:22px 24px;text-align:right;color:{pct_color};font-weight:700;font-size:17px;font-family:'Bebas Neue',sans-serif;letter-spacing:0.05em;">{r['pct']:.1f}%</td>
+            <td style="padding:22px 24px;text-align:right;border-right:1px solid #2a2a50;font-size:17px;">{r['total_n']:.0f} zł</td>
+            <td style="padding:22px 24px;text-align:right;border-right:1px solid #2a2a50;color:#6060a0;font-size:17px;">{r['total_g']:.0f} zł</td>
+            <td style="padding:22px 24px;text-align:right;border-right:1px solid #2a2a50;color:#5b8af5;font-size:17px;">{r['g_sn']:.0f} zł</td>
+            <td style="padding:22px 24px;text-align:right;border-right:1px solid #2a2a50;color:#4a6fd4;font-size:17px;">{r['fb_sn']:.0f} zł</td>
+            <td style="padding:22px 24px;text-align:right;border-right:1px solid #2a2a50;font-weight:600;font-size:17px;">{r['tot_sn']:.0f} zł</td>
+            <td style="padding:22px 24px;text-align:right;border-right:1px solid #2a2a50;color:#6060a0;font-size:17px;">{r['tot_sg']:.0f} zł</td>
+            <td style="padding:22px 24px;text-align:right;border-right:1px solid #2a2a50;color:#a080ff;font-weight:600;font-size:17px;">{r['rem_n']:.0f} zł</td>
+            <td style="padding:22px 24px;text-align:right;border-right:1px solid #2a2a50;color:#a080ff;font-weight:600;font-size:17px;">{r['daily']:.0f} zł</td>
+            <td style="padding:22px 24px;text-align:right;color:{pct_color};font-weight:700;font-size:17px;font-family:'Bebas Neue',sans-serif;letter-spacing:0.05em;">{r['pct']:.0f}%</td>
         </tr>"""
 
     st.html(f"""
@@ -470,10 +470,10 @@ if page == "Dashboard":
     # ── KPI ──
     section("Podsumowanie")
     k1,k2,k3,k4,k5 = st.columns(5)
-    with k1: kpi_card("Łączny budżet",  f"{sum_bud:.2f} zł",   "netto")
-    with k2: kpi_card("Łącznie wydano", f"{sum_spent:.2f} zł", f"brutto: {gross(sum_spent):.2f} zł")
-    with k3: kpi_card("Pozostało",      f"{sum_rem:.2f} zł",   "netto", accent=True)
-    with k4: kpi_card("Max dziennie",   f"{sum_daily:.2f} zł", f"na {days_left} dni")
+    with k1: kpi_card("Łączny budżet",  f"{sum_bud:.0f} zł",   "netto")
+    with k2: kpi_card("Łącznie wydano", f"{sum_spent:.0f} zł", f"brutto: {gross(sum_spent):.0f} zł")
+    with k3: kpi_card("Pozostało",      f"{sum_rem:.0f} zł",   "netto", accent=True)
+    with k4: kpi_card("Max dziennie",   f"{sum_daily:.0f} zł", f"na {days_left} dni")
     with k5: kpi_card("Klientów",       str(len(rows)),        f"{calendar.month_name[sel_month]} {sel_year}")
 
     # ── WYKRESY ──
@@ -646,7 +646,7 @@ elif page == "Pobierz":
                     fb_msg = f"Błąd: {str(e)[:50]}"
 
             save_spend(cname, period2, g_net, fb_net)
-            results.append({"Klient":cname,"Google":g_msg,"G netto":f"{g_net:.2f} zł","Meta":fb_msg,"FB netto":f"{fb_net:.2f} zł"})
+            results.append({"Klient":cname,"Google":g_msg,"G netto":f"{g_net:.0f} zł","Meta":fb_msg,"FB netto":f"{fb_net:.0f} zł"})
             progress.progress((i+1)/len(clients_df))
 
         st.success("Zaktualizowano! Przejdź do Dashboard.")
