@@ -1,124 +1,44 @@
 import streamlit as st
 import pandas as pd
-from datetime import date
+from datetime import date, timedelta
 import calendar
 import base64
 from pathlib import Path
+import json
 import re
 
 import gspread
 from google.oauth2.service_account import Credentials
 
-st.set_page_config(page_title="Ermon. | Budget Tracker", page_icon="📊", layout="wide", initial_sidebar_state="expanded")
+st.set_page_config(
+    page_title="Ermon. | Ads Analyzer",
+    page_icon="🔍",
+    layout="wide",
+    initial_sidebar_state="expanded"
+)
 
-VAT_RATE  = 0.23
-SHEET_ID  = "1l_fX5ydioIsKVyhitrnR3rcdf6RyZOq-x6oQ3mhP9uQ"
-SCOPES    = ["https://www.googleapis.com/auth/spreadsheets"]
+# ── CONSTANTS ─────────────────────────────────────────────────────────────────
+SHEET_ID = "1l_fX5ydioIsKVyhitrnR3rcdf6RyZOq-x6oQ3mhP9uQ"
+SCOPES   = ["https://www.googleapis.com/auth/spreadsheets"]
 
+# ── AUTH ──────────────────────────────────────────────────────────────────────
 @st.cache_resource
 def get_gsheet():
-    creds = Credentials.from_service_account_info(st.secrets["gcp_service_account"], scopes=SCOPES)
+    creds = Credentials.from_service_account_info(
+        st.secrets["gcp_service_account"], scopes=SCOPES
+    )
     return gspread.authorize(creds).open_by_key(SHEET_ID)
 
 def load_clients():
     try:
-        ws = get_gsheet().worksheet("klienci")
+        ws   = get_gsheet().worksheet("klienci")
         data = ws.get_all_records()
-        return pd.DataFrame(data) if data else pd.DataFrame(columns=["nazwa","google_ads_id","meta_ads_id","typ_kwoty"])
+        return pd.DataFrame(data) if data else pd.DataFrame(
+            columns=["nazwa","google_ads_id","meta_ads_id","typ_kwoty","mcc_id"]
+        )
     except Exception as e:
         st.error(f"Błąd odczytu klientów: {e}")
-        return pd.DataFrame(columns=["nazwa","google_ads_id","meta_ads_id","typ_kwoty"])
-
-def load_budgets():
-    try:
-        ws = get_gsheet().worksheet("budzety")
-        data = ws.get_all_records()
-        return pd.DataFrame(data) if data else pd.DataFrame(columns=["klient","miesiac","budzet_total"])
-    except Exception as e:
-        st.error(f"Błąd odczytu budżetów: {e}")
-        return pd.DataFrame(columns=["klient","miesiac","budzet_total"])
-
-def save_client(nazwa, google_id, meta_id, typ, mcc_id=""):
-    get_gsheet().worksheet("klienci").append_row([nazwa, google_id, meta_id, typ, mcc_id])
-
-def save_budget(klient, miesiac, budzet_total):
-    ws = get_gsheet().worksheet("budzety")
-    all_rows = ws.get_all_records()
-    for i, row in enumerate(all_rows):
-        if row["klient"] == klient and row["miesiac"] == miesiac:
-            ws.update(f"A{i+2}:C{i+2}", [[klient, miesiac, budzet_total]])
-            return
-    ws.append_row([klient, miesiac, budzet_total])
-
-def save_spend(klient, miesiac, google_spend, meta_spend):
-    try:
-        g_val = round(float(google_spend), 2)
-        f_val = round(float(meta_spend), 2)
-        ws = get_gsheet().worksheet("wydatki")
-        all_rows = ws.get_all_records()
-        for i, row in enumerate(all_rows):
-            if row["klient"] == klient and row["miesiac"] == miesiac:
-                ws.update(f"A{i+2}:D{i+2}", [[klient, miesiac, g_val, f_val]], value_input_option="RAW")
-                return
-        ws.append_row([klient, miesiac, g_val, f_val], value_input_option="RAW")
-    except Exception as e:
-        st.error(f"Błąd zapisu wydatków: {e}")
-
-def load_spend():
-    try:
-        ws = get_gsheet().worksheet("wydatki")
-        data = ws.get_all_records()
-        if not data:
-            return pd.DataFrame(columns=["klient","miesiac","google_spend","meta_spend"])
-        df = pd.DataFrame(data)
-        def clean_value(val, divide_by_100=False):
-            if isinstance(val, (int, float)):
-                result = float(val)
-                if divide_by_100:
-                    result = result / 100
-                return round(result, 2)
-            s = str(val).strip()
-            s = s.replace('\xa0', '').replace('\u00a0', '').replace(' ', '')
-            if '.' in s and ',' in s:
-                s = s.replace(',', '')
-            elif ',' in s and '.' not in s:
-                s = s.replace(',', '.')
-            s = re.sub(r'[^0-9.]', '', s)
-            try:
-                result = float(s)
-                if divide_by_100:
-                    result = result / 100
-                return round(result, 2)
-            except:
-                return 0.0
-        df["google_spend"] = df["google_spend"].apply(lambda x: clean_value(x, divide_by_100=False))
-        df["meta_spend"]   = df["meta_spend"].apply(lambda x: clean_value(x, divide_by_100=False))
-        return df
-    except Exception as e:
-        st.error(f"Błąd ładowania wydatków: {e}")
-        return pd.DataFrame(columns=["klient","miesiac","google_spend","meta_spend"])
-
-def delete_client(nazwa):
-    ws = get_gsheet().worksheet("klienci")
-    cell = ws.find(nazwa)
-    if cell:
-        ws.delete_rows(cell.row)
-
-def days_remaining(year, month):
-    today = date.today()
-    last  = calendar.monthrange(year, month)[1]
-    end   = date(year, month, last)
-    if today.year == year and today.month == month:
-        return max(0, (end - today).days + 1)
-    if date(year, month, 1) > today:
-        return last
-    return 0
-
-def gross(net):
-    return round(net * (1 + VAT_RATE), 2)
-
-def netto(gross_val):
-    return round(gross_val / (1 + VAT_RATE), 2)
+        return pd.DataFrame(columns=["nazwa","google_ads_id","meta_ads_id","typ_kwoty","mcc_id"])
 
 def get_logo_base64():
     logo_path = Path(__file__).parent / "logo.png"
@@ -129,10 +49,7 @@ def get_logo_base64():
 
 LOGO_B64 = get_logo_base64()
 
-# ── DESIGN SYSTEM ─────────────────────────────────────────────────────────────
-# Brand: #2c016d (deep violet), #ff466b (coral red), #3337bd (electric blue)
-# Aesthetic: Dark luxury editorial — high contrast, sharp typography, confident spacing
-
+# ── DESIGN SYSTEM (identyczny z Budget Tracker) ───────────────────────────────
 st.markdown(f"""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,300&display=swap');
@@ -148,6 +65,9 @@ st.markdown(f"""
   --text:    #e8e8f5;
   --muted:   #6060a0;
   --white:   #ffffff;
+  --green:   #00e5a0;
+  --yellow:  #ffb800;
+  --red:     #ff466b;
 }}
 
 html, body, [class*="css"] {{
@@ -156,64 +76,27 @@ html, body, [class*="css"] {{
     color: var(--text);
 }}
 
-/* ── SIDEBAR ── */
 section[data-testid="stSidebar"] {{
     background: var(--surface) !important;
     border-right: 1px solid var(--border);
 }}
-section[data-testid="stSidebar"] > div {{
-    padding: 0 !important;
-}}
+section[data-testid="stSidebar"] > div {{ padding: 0 !important; }}
 .sidebar-logo {{
     padding: 2rem 1.5rem 1.5rem;
     border-bottom: 1px solid var(--border);
     margin-bottom: 0.5rem;
 }}
-.sidebar-logo img {{
-    width: 110px;
-    filter: brightness(0) invert(1);
-}}
+.sidebar-logo img {{ width: 110px; filter: brightness(0) invert(1); }}
 .sidebar-tagline {{
     font-size: 0.65rem;
     letter-spacing: 0.2em;
     color: var(--muted);
     text-transform: uppercase;
     margin-top: 8px;
-    font-family: 'DM Sans', sans-serif;
-}}
-section[data-testid="stSidebar"] .stRadio {{
-    padding: 0 1rem;
-}}
-section[data-testid="stSidebar"] .stRadio label {{
-    font-family: 'DM Sans', sans-serif !important;
-    font-size: 1rem !important;
-    font-weight: 500 !important;
-    color: var(--muted) !important;
-    padding: 0.75rem 1rem !important;
-    border-radius: 8px !important;
-    margin: 2px 0 !important;
-    transition: all 0.2s !important;
-    display: block !important;
-    letter-spacing: 0.02em !important;
-}}
-section[data-testid="stSidebar"] .stRadio label:hover {{
-    color: var(--white) !important;
-    background: rgba(255,70,107,0.08) !important;
-}}
-section[data-testid="stSidebar"] .stRadio [data-checked="true"] label,
-section[data-testid="stSidebar"] .stRadio label[aria-checked="true"] {{
-    color: var(--white) !important;
-    background: linear-gradient(135deg, rgba(44,1,109,0.6), rgba(51,55,189,0.3)) !important;
-    border-left: 3px solid var(--coral) !important;
 }}
 
-/* ── MAIN ── */
-.main .block-container {{
-    padding: 2.5rem 3rem;
-    max-width: 1700px;
-}}
+.main .block-container {{ padding: 2.5rem 3rem; max-width: 1700px; }}
 
-/* ── PAGE HEADER ── */
 .page-title {{
     font-family: 'Bebas Neue', sans-serif;
     font-size: 3.5rem;
@@ -229,10 +112,7 @@ section[data-testid="stSidebar"] .stRadio label[aria-checked="true"] {{
     text-transform: uppercase;
     margin-bottom: 2.5rem;
 }}
-
-/* ── SECTION HEADER ── */
 .section-hdr {{
-    font-family: 'DM Sans', sans-serif;
     font-size: 0.7rem;
     font-weight: 600;
     color: var(--muted);
@@ -243,7 +123,7 @@ section[data-testid="stSidebar"] .stRadio label[aria-checked="true"] {{
     margin: 2.5rem 0 1.5rem;
 }}
 
-/* ── KPI CARDS ── */
+/* KPI cards */
 .kpi {{
     background: var(--surface);
     border: 1px solid var(--border);
@@ -251,27 +131,14 @@ section[data-testid="stSidebar"] .stRadio label[aria-checked="true"] {{
     padding: 1.5rem 1.8rem;
     position: relative;
     overflow: hidden;
-    transition: transform 0.2s, border-color 0.2s;
     margin-bottom: 1rem;
 }}
-.kpi::after {{
-    content: '';
-    position: absolute;
-    bottom: 0; left: 0; right: 0;
-    height: 2px;
-    background: linear-gradient(90deg, var(--violet), var(--coral));
-    opacity: 0;
-    transition: opacity 0.3s;
-}}
-.kpi:hover {{ transform: translateY(-3px); border-color: var(--blue); }}
-.kpi:hover::after {{ opacity: 1; }}
 .kpi-label {{
     font-size: 0.65rem;
     letter-spacing: 0.16em;
     text-transform: uppercase;
     color: var(--muted);
     margin-bottom: 0.6rem;
-    font-family: 'DM Sans', sans-serif;
 }}
 .kpi-value {{
     font-family: 'Bebas Neue', sans-serif;
@@ -281,14 +148,53 @@ section[data-testid="stSidebar"] .stRadio label[aria-checked="true"] {{
     letter-spacing: 0.04em;
 }}
 .kpi-accent {{ color: var(--coral); }}
-.kpi-sub {{
+.kpi-sub {{ font-size: 0.7rem; color: var(--muted); margin-top: 0.4rem; }}
+
+/* Status badges */
+.badge {{
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 20px;
     font-size: 0.7rem;
-    color: var(--muted);
-    margin-top: 0.4rem;
-    font-family: 'DM Sans', sans-serif;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}}
+.badge-red    {{ background: rgba(255,70,107,0.15); color: #ff466b; border: 1px solid rgba(255,70,107,0.3); }}
+.badge-yellow {{ background: rgba(255,184,0,0.15);  color: #ffb800; border: 1px solid rgba(255,184,0,0.3); }}
+.badge-green  {{ background: rgba(0,229,160,0.15);  color: #00e5a0; border: 1px solid rgba(0,229,160,0.3); }}
+
+/* Recommendation cards */
+.rec-card {{
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1.2rem 1.5rem;
+    margin-bottom: 0.8rem;
+    border-left: 3px solid var(--coral);
+}}
+.rec-card.ok   {{ border-left-color: #00e5a0; }}
+.rec-card.warn {{ border-left-color: #ffb800; }}
+.rec-card.crit {{ border-left-color: #ff466b; }}
+.rec-title {{
+    font-weight: 600;
+    font-size: 0.95rem;
+    color: var(--white);
+    margin-bottom: 0.3rem;
+}}
+.rec-body {{ font-size: 0.85rem; color: #a0a0c0; line-height: 1.6; }}
+.rec-action {{
+    display: inline-block;
+    margin-top: 0.6rem;
+    padding: 4px 12px;
+    background: rgba(51,55,189,0.2);
+    border: 1px solid rgba(51,55,189,0.4);
+    border-radius: 6px;
+    font-size: 0.75rem;
+    color: #8090ff;
+    font-weight: 500;
 }}
 
-/* ── BUTTONS ── */
 .stButton > button {{
     background: linear-gradient(135deg, var(--violet), var(--blue)) !important;
     color: white !important;
@@ -305,48 +211,41 @@ section[data-testid="stSidebar"] .stRadio label[aria-checked="true"] {{
     transform: translateY(-1px) !important;
 }}
 
-/* ── INPUTS ── */
 .stTextInput input, .stNumberInput input, .stSelectbox > div > div {{
     background: var(--surface2) !important;
     border: 1px solid var(--border) !important;
     color: var(--text) !important;
     border-radius: 8px !important;
-    font-family: 'DM Sans', sans-serif !important;
 }}
 
-/* ── MISC ── */
+.analyze-box {{
+    background: linear-gradient(135deg, rgba(44,1,109,0.3), rgba(51,55,189,0.2));
+    border: 1px solid rgba(51,55,189,0.4);
+    border-radius: 16px;
+    padding: 2rem;
+    text-align: center;
+    margin: 2rem 0;
+}}
+
 hr {{ border-color: var(--border) !important; }}
 #MainMenu, footer, header {{ visibility: hidden; }}
-.stDataFrame {{ font-size: 15px !important; }}
 </style>
 
 <div class="sidebar-logo">
     {"<img src='data:image/png;base64," + LOGO_B64 + "' />" if LOGO_B64 else "<span style='font-family:Bebas Neue,sans-serif;font-size:1.8rem;color:#fff;letter-spacing:0.05em;'>Ermon.</span>"}
-    <div class="sidebar-tagline">Budget Tracker</div>
+    <div class="sidebar-tagline">Ads Analyzer</div>
 </div>
 """, unsafe_allow_html=True)
-
-# ── SIDEBAR ───────────────────────────────────────────────────────────────────
-menu_map = {
-    "Dashboard":    "Dashboard",
-    "Klienci":      "Klienci",
-    "Budżety":      "Budżety",
-    "Pobierz z API":"Pobierz",
-    "Ustawienia":   "Ustawienia",
-}
-
-with st.sidebar:
-    selection = st.radio("", list(menu_map.keys()), label_visibility="collapsed")
-    page = menu_map[selection]
-    st.markdown("---")
-    today = date.today()
-    st.caption(f"📅 {today.strftime('%d.%m.%Y')}")
 
 # ── HELPERS ───────────────────────────────────────────────────────────────────
 def kpi_card(label, value, sub="", accent=False):
     vc = "kpi-value kpi-accent" if accent else "kpi-value"
     sh = f'<div class="kpi-sub">{sub}</div>' if sub else ""
-    st.markdown(f'<div class="kpi"><div class="kpi-label">{label}</div><div class="{vc}">{value}</div>{sh}</div>', unsafe_allow_html=True)
+    st.markdown(
+        f'<div class="kpi"><div class="kpi-label">{label}</div>'
+        f'<div class="{vc}">{value}</div>{sh}</div>',
+        unsafe_allow_html=True
+    )
 
 def page_header(title, subtitle=""):
     st.markdown(f'<div class="page-title">{title}</div>', unsafe_allow_html=True)
@@ -356,330 +255,659 @@ def page_header(title, subtitle=""):
 def section(title):
     st.markdown(f'<div class="section-hdr">{title}</div>', unsafe_allow_html=True)
 
-# ══════════════════════════════════════════════════════════════════════════════
-# DASHBOARD
-# ══════════════════════════════════════════════════════════════════════════════
-if page == "Dashboard":
-    page_header("Dashboard", "Przegląd budżetów reklamowych")
-    clients_df = load_clients()
-    budgets_df = load_budgets()
-    spend_df   = load_spend()
+def badge(text, kind="red"):
+    return f'<span class="badge badge-{kind}">{text}</span>'
 
-    if clients_df.empty:
-        st.info("Brak danych. Dodaj klientów w zakładce Klienci.")
-        st.stop()
+# ── GOOGLE ADS DATA FETCHER ───────────────────────────────────────────────────
+def get_ga_client(customer_id, mcc_id=""):
+    from google.ads.googleads.client import GoogleAdsClient
+    config = {
+        "developer_token": st.secrets["google_ads"]["GOOGLE_ADS_DEVELOPER_TOKEN"],
+        "client_id":       st.secrets["google_ads"]["GOOGLE_ADS_CLIENT_ID"],
+        "client_secret":   st.secrets["google_ads"]["GOOGLE_ADS_CLIENT_SECRET"],
+        "refresh_token":   st.secrets["google_ads"]["GOOGLE_ADS_REFRESH_TOKEN"],
+        "use_proto_plus":  True,
+    }
+    if mcc_id:
+        config["login_customer_id"] = mcc_id.replace("-", "")
+    elif "GOOGLE_ADS_LOGIN_CUSTOMER_ID" in st.secrets["google_ads"]:
+        config["login_customer_id"] = st.secrets["google_ads"]["GOOGLE_ADS_LOGIN_CUSTOMER_ID"]
+    return GoogleAdsClient.load_from_dict(config)
 
-    cy, cm, _, _ = st.columns([1,1,1,2])
-    sel_year  = cy.selectbox("Rok",  [today.year-1, today.year, today.year+1], index=1, key="dy")
-    sel_month = cm.selectbox("Miesiąc", range(1,13), index=today.month-1,
-                             format_func=lambda m: calendar.month_abbr[m], key="dm")
-    period    = f"{sel_year}-{sel_month:02d}"
-    days_left = days_remaining(sel_year, sel_month)
-
-    groups = {}
-    for _, client in clients_df.iterrows():
-        cname = client["nazwa"]
-        grupa = str(client.get("grupa", cname)).strip() or cname
-        gm    = str(client.get("typ_kwoty","netto")).lower() == "brutto"
-        spnd_row = spend_df[(spend_df["klient"]==cname) & (spend_df["miesiac"]==period)]
-        g_sn  = float(spnd_row["google_spend"].values[0]) if not spnd_row.empty else 0.0
-        fb_sn = float(spnd_row["meta_spend"].values[0])   if not spnd_row.empty else 0.0
-        if grupa not in groups:
-            groups[grupa] = {"g_sn": 0.0, "fb_sn": 0.0, "gm": gm}
-        groups[grupa]["g_sn"]  += g_sn
-        groups[grupa]["fb_sn"] += fb_sn
-
+def fetch_campaigns(ga_client, customer_id, date_from, date_to):
+    """Pobiera kampanie z metrykami."""
+    svc = ga_client.get_service("GoogleAdsService")
+    cid = customer_id.replace("-", "")
+    query = f"""
+        SELECT
+            campaign.id,
+            campaign.name,
+            campaign.status,
+            campaign.advertising_channel_type,
+            campaign.bidding_strategy_type,
+            campaign.target_cpa.target_cpa_micros,
+            campaign.target_roas.target_roas,
+            metrics.clicks,
+            metrics.impressions,
+            metrics.ctr,
+            metrics.average_cpc,
+            metrics.cost_micros,
+            metrics.conversions,
+            metrics.conversions_value,
+            metrics.cost_per_conversion,
+            metrics.search_impression_share,
+            metrics.search_budget_lost_impression_share,
+            metrics.search_rank_lost_impression_share
+        FROM campaign
+        WHERE segments.date BETWEEN '{date_from}' AND '{date_to}'
+          AND campaign.status != 'REMOVED'
+        ORDER BY metrics.cost_micros DESC
+    """
     rows = []
-    for grupa, gdata in groups.items():
-        bud_row = budgets_df[(budgets_df["klient"]==grupa) & (budgets_df["miesiac"]==period)]
-        total_r = float(bud_row["budzet_total"].values[0]) if not bud_row.empty else 0.0
-        total_n = netto(total_r) if gdata["gm"] else total_r
-        g_sn    = round(gdata["g_sn"], 2)
-        fb_sn   = round(gdata["fb_sn"], 2)
-        tot_sn  = round(g_sn + fb_sn, 2)
-        rem_n   = max(0, total_n - tot_sn)
-        daily   = round(rem_n/days_left, 2) if days_left > 0 else 0
-        pct     = round(tot_sn/total_n*100, 1) if total_n > 0 else 0
-        rows.append(dict(
-            cname=grupa,
-            total_n=round(total_n,2), total_g=round(gross(total_n),2),
-            g_sn=g_sn, g_sg=round(gross(g_sn),2),
-            fb_sn=fb_sn, fb_sg=round(gross(fb_sn),2),
-            tot_sn=tot_sn, tot_sg=round(gross(tot_sn),2),
-            rem_n=round(rem_n,2), rem_g=round(gross(rem_n),2),
-            daily=round(daily,2), pct=round(pct,1)
-        ))
+    try:
+        resp = svc.search_stream(customer_id=cid, query=query)
+        for batch in resp:
+            for row in batch.results:
+                c  = row.campaign
+                m  = row.metrics
+                rows.append({
+                    "id":              str(c.id),
+                    "name":            c.name,
+                    "status":          c.status.name,
+                    "channel":         c.advertising_channel_type.name,
+                    "bidding":         c.bidding_strategy_type.name,
+                    "target_cpa":      round(c.target_cpa.target_cpa_micros / 1e6, 2) if c.target_cpa.target_cpa_micros else None,
+                    "target_roas":     round(c.target_roas.target_roas, 2) if c.target_roas.target_roas else None,
+                    "clicks":          m.clicks,
+                    "impressions":     m.impressions,
+                    "ctr":             round(m.ctr * 100, 2),
+                    "avg_cpc":         round(m.average_cpc / 1e6, 2),
+                    "cost":            round(m.cost_micros / 1e6, 2),
+                    "conversions":     round(m.conversions, 1),
+                    "conv_value":      round(m.conversions_value, 2),
+                    "cpa":             round(m.cost_per_conversion / 1e6, 2) if m.conversions > 0 else None,
+                    "roas":            round(m.conversions_value / (m.cost_micros / 1e6), 2) if m.cost_micros > 0 and m.conversions_value > 0 else None,
+                    "impression_share":round(m.search_impression_share * 100, 1) if m.search_impression_share else None,
+                    "lost_budget":     round(m.search_budget_lost_impression_share * 100, 1) if m.search_budget_lost_impression_share else None,
+                    "lost_rank":       round(m.search_rank_lost_impression_share * 100, 1) if m.search_rank_lost_impression_share else None,
+                })
+    except Exception as e:
+        st.warning(f"Błąd pobierania kampanii: {e}")
+    return rows
 
-    sum_bud   = sum(r["total_n"] for r in rows)
-    sum_spent = sum(r["tot_sn"]  for r in rows)
-    sum_rem   = sum_bud - sum_spent
-    sum_daily = round(sum_rem/days_left, 2) if days_left > 0 else 0
+def fetch_keywords(ga_client, customer_id, date_from, date_to):
+    """Pobiera słowa kluczowe z Quality Score."""
+    svc = ga_client.get_service("GoogleAdsService")
+    cid = customer_id.replace("-", "")
+    query = f"""
+        SELECT
+            campaign.name,
+            ad_group.name,
+            ad_group_criterion.keyword.text,
+            ad_group_criterion.keyword.match_type,
+            ad_group_criterion.quality_info.quality_score,
+            ad_group_criterion.quality_info.creative_quality_score,
+            ad_group_criterion.quality_info.post_click_quality_score,
+            ad_group_criterion.quality_info.search_predicted_ctr,
+            metrics.clicks,
+            metrics.impressions,
+            metrics.cost_micros,
+            metrics.conversions,
+            metrics.cost_per_conversion
+        FROM keyword_view
+        WHERE segments.date BETWEEN '{date_from}' AND '{date_to}'
+          AND ad_group_criterion.status != 'REMOVED'
+          AND campaign.status != 'REMOVED'
+        ORDER BY metrics.cost_micros DESC
+        LIMIT 100
+    """
+    rows = []
+    try:
+        resp = svc.search_stream(customer_id=cid, query=query)
+        for batch in resp:
+            for row in batch.results:
+                kw = row.ad_group_criterion
+                m  = row.metrics
+                qs = kw.quality_info.quality_score if kw.quality_info.quality_score else None
+                rows.append({
+                    "campaign":    row.campaign.name,
+                    "ad_group":    row.ad_group.name,
+                    "keyword":     kw.keyword.text,
+                    "match_type":  kw.keyword.match_type.name,
+                    "qs":          qs,
+                    "clicks":      m.clicks,
+                    "impressions": m.impressions,
+                    "cost":        round(m.cost_micros / 1e6, 2),
+                    "conversions": round(m.conversions, 1),
+                    "cpa":         round(m.cost_per_conversion / 1e6, 2) if m.conversions > 0 else None,
+                })
+    except Exception as e:
+        st.warning(f"Błąd pobierania słów kluczowych: {e}")
+    return rows
 
-    # ── TABELA ──
-    section("Tabela zbiorcza")
-    html_rows = ""
-    for i, r in enumerate(rows):
-        bg = "#13132a" if i % 2 == 0 else "#0f0f22"
-        pct_color = "#00e5a0" if r['pct'] < 75 else ("#ffb800" if r['pct'] < 95 else "#ff466b")
-        html_rows += f"""
-        <tr style="background:{bg};border-bottom:1px solid #2a2a50;">
-            <td style="padding:22px 24px;font-weight:600;color:#ffffff;border-right:1px solid #2a2a50;font-size:17px;">{r['cname']}</td>
-            <td style="padding:22px 24px;text-align:right;border-right:1px solid #2a2a50;font-size:17px;">{r['total_n']:.0f} zł</td>
-            <td style="padding:22px 24px;text-align:right;border-right:1px solid #2a2a50;color:#6060a0;font-size:17px;">{r['total_g']:.0f} zł</td>
-            <td style="padding:22px 24px;text-align:right;border-right:1px solid #2a2a50;color:#5b8af5;font-size:17px;">{r['g_sn']:.0f} zł</td>
-            <td style="padding:22px 24px;text-align:right;border-right:1px solid #2a2a50;color:#4a6fd4;font-size:17px;">{r['fb_sn']:.0f} zł</td>
-            <td style="padding:22px 24px;text-align:right;border-right:1px solid #2a2a50;font-weight:600;font-size:17px;">{r['tot_sn']:.0f} zł</td>
-            <td style="padding:22px 24px;text-align:right;border-right:1px solid #2a2a50;color:#6060a0;font-size:17px;">{r['tot_sg']:.0f} zł</td>
-            <td style="padding:22px 24px;text-align:right;border-right:1px solid #2a2a50;color:#a080ff;font-weight:600;font-size:17px;">{r['rem_n']:.0f} zł</td>
-            <td style="padding:22px 24px;text-align:right;border-right:1px solid #2a2a50;color:#a080ff;font-weight:600;font-size:17px;">{r['daily']:.0f} zł</td>
-            <td style="padding:22px 24px;text-align:right;color:{pct_color};font-weight:700;font-size:17px;font-family:'Bebas Neue',sans-serif;letter-spacing:0.05em;">{r['pct']:.0f}%</td>
-        </tr>"""
+def fetch_search_terms(ga_client, customer_id, date_from, date_to):
+    """Pobiera search terms — złoto do wykluczeń."""
+    svc = ga_client.get_service("GoogleAdsService")
+    cid = customer_id.replace("-", "")
+    query = f"""
+        SELECT
+            campaign.name,
+            ad_group.name,
+            search_term_view.search_term,
+            search_term_view.status,
+            metrics.clicks,
+            metrics.impressions,
+            metrics.cost_micros,
+            metrics.conversions,
+            metrics.ctr
+        FROM search_term_view
+        WHERE segments.date BETWEEN '{date_from}' AND '{date_to}'
+          AND metrics.impressions > 3
+        ORDER BY metrics.cost_micros DESC
+        LIMIT 200
+    """
+    rows = []
+    try:
+        resp = svc.search_stream(customer_id=cid, query=query)
+        for batch in resp:
+            for row in batch.results:
+                m = row.metrics
+                rows.append({
+                    "campaign":   row.campaign.name,
+                    "ad_group":   row.ad_group.name,
+                    "term":       row.search_term_view.search_term,
+                    "status":     row.search_term_view.status.name,
+                    "clicks":     m.clicks,
+                    "impressions":m.impressions,
+                    "cost":       round(m.cost_micros / 1e6, 2),
+                    "conversions":round(m.conversions, 1),
+                    "ctr":        round(m.ctr * 100, 2),
+                })
+    except Exception as e:
+        st.warning(f"Błąd pobierania search terms: {e}")
+    return rows
 
-    st.html(f"""
-    <style>@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@400;500;600&display=swap');</style>
-    <div style="border-radius:16px;overflow:hidden;border:1px solid #2a2a50;box-shadow:0 8px 32px rgba(0,0,0,0.4);">
-    <table style="width:100%;border-collapse:collapse;font-family:'DM Sans',sans-serif;">
-        <thead>
-            <tr style="background:linear-gradient(135deg,#2c016d,#3337bd);color:rgba(255,255,255,0.7);font-size:11px;letter-spacing:0.18em;text-transform:uppercase;">
-                <th style="padding:18px 24px;text-align:left;border-bottom:1px solid rgba(255,255,255,0.1);">Klient</th>
-                <th style="padding:18px 24px;text-align:right;border-bottom:1px solid rgba(255,255,255,0.1);">Budżet netto</th>
-                <th style="padding:18px 24px;text-align:right;border-bottom:1px solid rgba(255,255,255,0.1);">Budżet brutto</th>
-                <th style="padding:18px 24px;text-align:right;border-bottom:1px solid rgba(255,255,255,0.1);">Google</th>
-                <th style="padding:18px 24px;text-align:right;border-bottom:1px solid rgba(255,255,255,0.1);">Meta</th>
-                <th style="padding:18px 24px;text-align:right;border-bottom:1px solid rgba(255,255,255,0.1);">Razem netto</th>
-                <th style="padding:18px 24px;text-align:right;border-bottom:1px solid rgba(255,255,255,0.1);">Razem brutto</th>
-                <th style="padding:18px 24px;text-align:right;border-bottom:1px solid rgba(255,255,255,0.1);color:#c0a0ff;">Pozostało</th>
-                <th style="padding:18px 24px;text-align:right;border-bottom:1px solid rgba(255,255,255,0.1);color:#c0a0ff;">Max dziennie</th>
-                <th style="padding:18px 24px;text-align:right;border-bottom:1px solid rgba(255,255,255,0.1);color:#ff9090;">% budżetu</th>
-            </tr>
-        </thead>
-        <tbody>{html_rows}</tbody>
-    </table>
+def fetch_ads(ga_client, customer_id, date_from, date_to):
+    """Pobiera reklamy (RSA/ETA) z CTR i konwersjami."""
+    svc = ga_client.get_service("GoogleAdsService")
+    cid = customer_id.replace("-", "")
+    query = f"""
+        SELECT
+            campaign.name,
+            ad_group.name,
+            ad_group_ad.ad.type,
+            ad_group_ad.status,
+            ad_group_ad.ad.final_urls,
+            metrics.clicks,
+            metrics.impressions,
+            metrics.ctr,
+            metrics.conversions,
+            metrics.cost_micros
+        FROM ad_group_ad
+        WHERE segments.date BETWEEN '{date_from}' AND '{date_to}'
+          AND ad_group_ad.status != 'REMOVED'
+          AND campaign.status != 'REMOVED'
+        ORDER BY metrics.impressions DESC
+        LIMIT 50
+    """
+    rows = []
+    try:
+        resp = svc.search_stream(customer_id=cid, query=query)
+        for batch in resp:
+            for row in batch.results:
+                m = row.metrics
+                ad = row.ad_group_ad.ad
+                rows.append({
+                    "campaign":   row.campaign.name,
+                    "ad_group":   row.ad_group.name,
+                    "type":       ad.type_.name,
+                    "status":     row.ad_group_ad.status.name,
+                    "final_url":  ad.final_urls[0] if ad.final_urls else "",
+                    "clicks":     m.clicks,
+                    "impressions":m.impressions,
+                    "ctr":        round(m.ctr * 100, 2),
+                    "conversions":round(m.conversions, 1),
+                    "cost":       round(m.cost_micros / 1e6, 2),
+                })
+    except Exception as e:
+        st.warning(f"Błąd pobierania reklam: {e}")
+    return rows
+
+# ── CLAUDE ANALYSIS ───────────────────────────────────────────────────────────
+def analyze_with_claude(data: dict, client_name: str, date_from: str, date_to: str) -> dict:
+    """Wysyła dane do Claude API i zwraca ustrukturyzowaną analizę."""
+    import anthropic
+
+    campaigns_summary = []
+    for c in data.get("campaigns", [])[:20]:
+        campaigns_summary.append(
+            f"- {c['name']} | status: {c['status']} | bidding: {c['bidding']} | "
+            f"koszt: {c['cost']} PLN | kliknięcia: {c['clicks']} | "
+            f"konwersje: {c['conversions']} | CPA: {c.get('cpa','brak')} PLN | "
+            f"ROAS: {c.get('roas','brak')} | CTR: {c['ctr']}% | "
+            f"IS: {c.get('impression_share','?')}% | "
+            f"stracone_budget: {c.get('lost_budget','?')}% | "
+            f"stracone_ranking: {c.get('lost_rank','?')}%"
+        )
+
+    kw_summary = []
+    for k in data.get("keywords", [])[:40]:
+        kw_summary.append(
+            f"- [{k['match_type']}] \"{k['keyword']}\" | QS: {k.get('qs','?')} | "
+            f"koszt: {k['cost']} PLN | konwersje: {k['conversions']} | "
+            f"CPA: {k.get('cpa','brak')} PLN | kliknięcia: {k['clicks']}"
+        )
+
+    # Wyszukiwane frazy bez konwersji, drogie
+    waste_terms = [
+        t for t in data.get("search_terms", [])
+        if t["conversions"] == 0 and t["cost"] > 10
+    ]
+    waste_terms.sort(key=lambda x: x["cost"], reverse=True)
+    waste_summary = []
+    for t in waste_terms[:30]:
+        waste_summary.append(
+            f"- \"{t['term']}\" | koszt: {t['cost']} PLN | "
+            f"kliknięcia: {t['clicks']} | konwersje: 0 | kampania: {t['campaign']}"
+        )
+
+    ads_summary = []
+    for a in data.get("ads", [])[:20]:
+        ads_summary.append(
+            f"- [{a['type']}] {a['campaign']} / {a['ad_group']} | "
+            f"CTR: {a['ctr']}% | konwersje: {a['conversions']} | "
+            f"kliknięcia: {a['clicks']} | URL: {a.get('final_url','?')}"
+        )
+
+    prompt = f"""Jesteś ekspertem Google Ads z 10-letnim doświadczeniem. Analizujesz konto klienta: {client_name}.
+Okres: {date_from} — {date_to}.
+
+=== KAMPANIE ===
+{chr(10).join(campaigns_summary) if campaigns_summary else "Brak danych"}
+
+=== SŁOWA KLUCZOWE (top 40 wg kosztu) ===
+{chr(10).join(kw_summary) if kw_summary else "Brak danych"}
+
+=== FRAZY BEZ KONWERSJI (do wykluczenia) ===
+{chr(10).join(waste_summary) if waste_summary else "Brak fraz do wykluczenia"}
+
+=== REKLAMY ===
+{chr(10).join(ads_summary) if ads_summary else "Brak danych"}
+
+Zwróć analizę WYŁĄCZNIE jako JSON (bez żadnego tekstu przed ani po), w tej strukturze:
+{{
+  "podsumowanie": "2-3 zdania ogólnej oceny konta",
+  "ocena_ogolna": "zła|średnia|dobra",
+  "problemy_krytyczne": [
+    {{
+      "tytul": "krótki tytuł problemu",
+      "opis": "co dokładnie jest nie tak i dlaczego to problem",
+      "akcja": "dokładnie co zrobić krok po kroku",
+      "priorytet": "wysoki|średni|niski"
+    }}
+  ],
+  "co_dziala_dobrze": [
+    {{
+      "tytul": "co jest ok",
+      "opis": "dlaczego to działa dobrze"
+    }}
+  ],
+  "slowa_do_wykluczenia": ["fraza1", "fraza2", "fraza3"],
+  "rekomendacje_stawek": [
+    {{
+      "kampania": "nazwa kampanii",
+      "obecna_strategia": "co jest teraz",
+      "rekomendacja": "co zmienić i dlaczego",
+      "akcja": "dokładny krok"
+    }}
+  ],
+  "rekomendacje_slow_kluczowych": [
+    {{
+      "akcja_typ": "dodaj|wyklucz|zmień_dopasowanie|wstrzymaj",
+      "slowo": "słowo kluczowe",
+      "powod": "dlaczego",
+      "szczegoly": "jak dokładnie to zrobić"
+    }}
+  ],
+  "rekomendacje_reklam": [
+    {{
+      "problem": "co jest nie tak z reklamami",
+      "akcja": "co zrobić"
+    }}
+  ],
+  "nastepne_kroki": [
+    "Krok 1: ...",
+    "Krok 2: ...",
+    "Krok 3: ..."
+  ]
+}}"""
+
+    try:
+        client = anthropic.Anthropic(api_key=st.secrets["anthropic"]["ANTHROPIC_API_KEY"])
+        message = client.messages.create(
+            model="claude-opus-4-5",
+            max_tokens=4000,
+            messages=[{"role": "user", "content": prompt}]
+        )
+        raw = message.content[0].text.strip()
+        # Usuń markdown fences jeśli są
+        raw = re.sub(r"^```json\s*", "", raw)
+        raw = re.sub(r"^```\s*",     "", raw)
+        raw = re.sub(r"\s*```$",     "", raw)
+        return json.loads(raw)
+    except json.JSONDecodeError as e:
+        st.error(f"Błąd parsowania odpowiedzi Claude: {e}")
+        return {}
+    except Exception as e:
+        st.error(f"Błąd Claude API: {e}")
+        return {}
+
+# ── RENDER ANALYSIS ───────────────────────────────────────────────────────────
+def render_analysis(analysis: dict):
+    if not analysis:
+        st.error("Brak wyników analizy.")
+        return
+
+    ocena = analysis.get("ocena_ogolna", "średnia")
+    ocena_badge = {"dobra": "green", "średnia": "yellow", "zła": "red"}.get(ocena, "yellow")
+    ocena_icon  = {"dobra": "✓", "średnia": "⚠", "zła": "✕"}.get(ocena, "⚠")
+
+    st.markdown(f"""
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:1.8rem 2rem;margin-bottom:1.5rem;">
+        <div style="display:flex;align-items:center;gap:1rem;margin-bottom:0.8rem;">
+            <span style="font-family:'Bebas Neue',sans-serif;font-size:1.5rem;color:var(--white);">Ocena ogólna</span>
+            <span class="badge badge-{ocena_badge}">{ocena_icon} {ocena.upper()}</span>
+        </div>
+        <div style="color:#a0a0c0;font-size:0.95rem;line-height:1.6;">{analysis.get("podsumowanie","")}</div>
     </div>
-    """)
+    """, unsafe_allow_html=True)
 
-    st.markdown("<br>", unsafe_allow_html=True)
-    csv = pd.DataFrame([{
-        "Klient": r["cname"], "Budżet netto": r["total_n"],
-        "Google wydano": r["g_sn"], "Meta wydano": r["fb_sn"],
-        "Razem wydano": r["tot_sn"], "Pozostało": r["rem_n"],
-        "Max dziennie": r["daily"], "% budżetu": r["pct"],
-    } for r in rows]).to_csv(index=False, sep=";", decimal=",").encode("utf-8-sig")
-    st.download_button("Pobierz CSV", csv, file_name=f"ermon_budgety_{period}.csv", mime="text/csv")
+    # Problemy krytyczne
+    problems = analysis.get("problemy_krytyczne", [])
+    if problems:
+        section(f"Problemy do naprawienia ({len(problems)})")
+        for p in problems:
+            pri   = p.get("priorytet", "średni")
+            color = {"wysoki": "crit", "średni": "warn", "niski": "ok"}.get(pri, "warn")
+            pri_badge = {"wysoki": "red", "średni": "yellow", "niski": "green"}.get(pri, "yellow")
+            st.markdown(f"""
+            <div class="rec-card {color}">
+                <div style="display:flex;align-items:center;gap:0.6rem;margin-bottom:0.4rem;">
+                    <div class="rec-title">{p.get("tytul","")}</div>
+                    <span class="badge badge-{pri_badge}">{pri}</span>
+                </div>
+                <div class="rec-body">{p.get("opis","")}</div>
+                <div class="rec-action">▶ {p.get("akcja","")}</div>
+            </div>
+            """, unsafe_allow_html=True)
 
-    # ── KPI ──
-    section("Podsumowanie")
-    k1,k2,k3,k4,k5 = st.columns(5)
-    with k1: kpi_card("Łączny budżet",  f"{sum_bud:.0f} zł",   "netto")
-    with k2: kpi_card("Łącznie wydano", f"{sum_spent:.0f} zł", f"brutto: {gross(sum_spent):.0f} zł")
-    with k3: kpi_card("Pozostało",      f"{sum_rem:.0f} zł",   "netto", accent=True)
-    with k4: kpi_card("Max dziennie",   f"{sum_daily:.0f} zł", f"na {days_left} dni")
-    with k5: kpi_card("Klientów",       str(len(rows)),        f"{calendar.month_name[sel_month]} {sel_year}")
+    # Co działa dobrze
+    good = analysis.get("co_dziala_dobrze", [])
+    if good:
+        section(f"Co działa dobrze ({len(good)})")
+        for g in good:
+            st.markdown(f"""
+            <div class="rec-card ok">
+                <div class="rec-title">✓ {g.get("tytul","")}</div>
+                <div class="rec-body">{g.get("opis","")}</div>
+            </div>
+            """, unsafe_allow_html=True)
 
-    # ── WYKRESY ──
-    import plotly.express as px
-    import plotly.graph_objects as go
+    # Słowa do wykluczenia
+    exclusions = analysis.get("slowa_do_wykluczenia", [])
+    if exclusions:
+        section(f"Słowa kluczowe do wykluczenia ({len(exclusions)})")
+        cols = st.columns(3)
+        for i, word in enumerate(exclusions):
+            with cols[i % 3]:
+                st.markdown(f"""
+                <div style="background:rgba(255,70,107,0.08);border:1px solid rgba(255,70,107,0.2);
+                     border-radius:8px;padding:0.5rem 0.8rem;margin-bottom:0.5rem;
+                     font-size:0.85rem;color:#ff8099;font-family:'DM Sans',sans-serif;">
+                    ✕ {word}
+                </div>
+                """, unsafe_allow_html=True)
 
-    section("Wykresy")
-    col_chart1, col_chart2 = st.columns(2)
-    df_chart = pd.DataFrame([{"Klient":r["cname"],"Google":r["g_sn"],"Meta":r["fb_sn"],"Budżet":r["total_n"]} for r in rows])
+    # Rekomendacje stawek
+    bids = analysis.get("rekomendacje_stawek", [])
+    if bids:
+        section(f"Rekomendacje stawek i strategii bidowania ({len(bids)})")
+        for b in bids:
+            st.markdown(f"""
+            <div class="rec-card warn">
+                <div class="rec-title">💰 {b.get("kampania","")}</div>
+                <div class="rec-body">
+                    <strong style="color:#ffb800;">Teraz:</strong> {b.get("obecna_strategia","")}<br>
+                    <strong style="color:#a0a0c0;">Rekomendacja:</strong> {b.get("rekomendacja","")}
+                </div>
+                <div class="rec-action">▶ {b.get("akcja","")}</div>
+            </div>
+            """, unsafe_allow_html=True)
 
-    with col_chart1:
-        fig1 = go.Figure()
-        fig1.add_trace(go.Bar(name="Google", x=df_chart["Klient"], y=df_chart["Google"], marker_color="#3337bd"))
-        fig1.add_trace(go.Bar(name="Meta",   x=df_chart["Klient"], y=df_chart["Meta"],   marker_color="#ff466b"))
-        fig1.add_trace(go.Scatter(name="Budżet", x=df_chart["Klient"], y=df_chart["Budżet"],
-                                  mode="markers", marker=dict(color="#ffffff", size=10, symbol="line-ew-open", line=dict(width=3))))
-        fig1.update_layout(title="Wydatki vs Budżet", barmode="stack",
-                           paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
-                           font=dict(color="#a0a0c0", family="DM Sans"),
-                           legend=dict(bgcolor="rgba(0,0,0,0)"),
-                           xaxis=dict(gridcolor="#1e1e3a"), yaxis=dict(gridcolor="#1e1e3a"), height=380)
-        st.plotly_chart(fig1, use_container_width=True)
-
-    with col_chart2:
-        df_pie = pd.DataFrame([{"Klient":r["cname"],"Wydano":r["tot_sn"]} for r in rows if r["tot_sn"]>0])
-        if not df_pie.empty:
-            fig2 = px.pie(df_pie, names="Klient", values="Wydano", title="Podział wydatków",
-                          color_discrete_sequence=["#2c016d","#3337bd","#ff466b","#7040d0","#ff8099"])
-            fig2.update_layout(paper_bgcolor="rgba(0,0,0,0)", font=dict(color="#a0a0c0", family="DM Sans"), height=380)
-            st.plotly_chart(fig2, use_container_width=True)
-
-# ══════════════════════════════════════════════════════════════════════════════
-# KLIENCI
-# ══════════════════════════════════════════════════════════════════════════════
-elif page == "Klienci":
-    page_header("Klienci", "Zarządzanie bazą klientów")
-    col1, col2 = st.columns([1,2])
-    with col1:
-        section("Dodaj klienta")
-        with st.form("add_client"):
-            name   = st.text_input("Nazwa klienta")
-            g_id   = st.text_input("Google Ads Customer ID", placeholder="123-456-7890")
-            mcc_id = st.text_input("MCC ID (konto menedżera)", placeholder="1234567890")
-            fb_id  = st.text_input("Meta Ads Account ID", placeholder="act_123456789")
-            typ    = st.selectbox("Typ kwoty budżetu", ["netto","brutto"])
-            submit = st.form_submit_button("Dodaj klienta", use_container_width=True)
-        if submit and name.strip():
-            save_client(name.strip(), g_id.strip(), fb_id.strip(), typ, mcc_id.strip())
-            st.cache_resource.clear()
-            st.success(f"Dodano: **{name.strip()}**")
-            st.rerun()
-    with col2:
-        section("Lista klientów")
-        clients_df = load_clients()
-        if clients_df.empty:
-            st.info("Brak klientów.")
-        else:
-            for _, row in clients_df.iterrows():
-                with st.expander(f"{row['nazwa']}"):
-                    c1,c2,c3 = st.columns(3)
-                    c1.write(f"**Google Ads:** {row.get('google_ads_id') or '—'}")
-                    c2.write(f"**Meta Ads:** {row.get('meta_ads_id') or '—'}")
-                    c3.write(f"**Typ kwoty:** {row.get('typ_kwoty','netto')}")
-                    if st.button("Usuń", key=f"del_{row['nazwa']}"):
-                        delete_client(row['nazwa'])
-                        st.cache_resource.clear()
-                        st.rerun()
-
-# ══════════════════════════════════════════════════════════════════════════════
-# BUDŻETY
-# ══════════════════════════════════════════════════════════════════════════════
-elif page == "Budżety":
-    page_header("Budżety", "Ustawianie budżetów miesięcznych")
-    clients_df = load_clients()
-    if clients_df.empty:
-        st.warning("Najpierw dodaj klientów.")
-        st.stop()
-    sel_client = st.selectbox("Klient / Grupa", clients_df["nazwa"].tolist())
-    c1,c2 = st.columns(2)
-    sel_year  = c1.selectbox("Rok",  [today.year-1,today.year,today.year+1], index=1)
-    sel_month = c2.selectbox("Miesiąc", range(1,13), index=today.month-1,
-                             format_func=lambda m: calendar.month_name[m])
-    period = f"{sel_year}-{sel_month:02d}"
-    budgets_df  = load_budgets()
-    existing    = budgets_df[(budgets_df["klient"]==sel_client) & (budgets_df["miesiac"]==period)]
-    current_val = float(existing["budzet_total"].values[0]) if not existing.empty else 0.0
-    section(f"Budżet — {calendar.month_name[sel_month]} {sel_year}")
-    with st.form("set_budget"):
-        budzet = st.number_input("Łączny budżet (zł)", min_value=0.0, step=100.0, value=current_val)
-        saved  = st.form_submit_button("Zapisz", use_container_width=True)
-    if saved:
-        save_budget(sel_client, period, budzet)
-        st.success("Zapisano w Google Sheets!")
-        st.rerun()
-
-# ══════════════════════════════════════════════════════════════════════════════
-# POBIERZ Z API
-# ══════════════════════════════════════════════════════════════════════════════
-elif page == "Pobierz":
-    page_header("Pobierz dane z API", "Synchronizacja z Google Ads i Meta Ads")
-    clients_df = load_clients()
-    c1,c2 = st.columns(2)
-    sel_year2  = c1.selectbox("Rok",  [today.year-1,today.year,today.year+1], index=1)
-    sel_month2 = c2.selectbox("Miesiąc", range(1,13), index=today.month-1,
-                              format_func=lambda m: calendar.month_name[m])
-    period2 = f"{sel_year2}-{sel_month2:02d}"
-
-    if st.button("Pobierz dla wszystkich klientów", use_container_width=True, type="primary"):
-        from google.ads.googleads.client import GoogleAdsClient
-        from google.ads.googleads.errors import GoogleAdsException
-        from facebook_business.api import FacebookAdsApi
-        from facebook_business.adobjects.adaccount import AdAccount
-        from facebook_business.adobjects.adsinsights import AdsInsights
-        import calendar as cal
-
-        ga_base_config = {
-            "developer_token": st.secrets["google_ads"]["GOOGLE_ADS_DEVELOPER_TOKEN"],
-            "client_id":       st.secrets["google_ads"]["GOOGLE_ADS_CLIENT_ID"],
-            "client_secret":   st.secrets["google_ads"]["GOOGLE_ADS_CLIENT_SECRET"],
-            "refresh_token":   st.secrets["google_ads"]["GOOGLE_ADS_REFRESH_TOKEN"],
-            "use_proto_plus":  True,
+    # Rekomendacje słów kluczowych
+    kw_recs = analysis.get("rekomendacje_slow_kluczowych", [])
+    if kw_recs:
+        section(f"Rekomendacje słów kluczowych ({len(kw_recs)})")
+        type_colors = {
+            "dodaj":              ("green", "+"),
+            "wyklucz":            ("red",   "✕"),
+            "zmień_dopasowanie":  ("yellow","~"),
+            "wstrzymaj":          ("yellow","⏸"),
         }
-        FacebookAdsApi.init(access_token=st.secrets["meta"]["META_ACCESS_TOKEN"],
-                            api_version=st.secrets["meta"].get("META_API_VERSION","v19.0"))
+        for k in kw_recs:
+            typ   = k.get("akcja_typ", "zmień_dopasowanie")
+            color, icon = type_colors.get(typ, ("yellow", "~"))
+            st.markdown(f"""
+            <div class="rec-card {'ok' if color=='green' else ('crit' if color=='red' else 'warn')}">
+                <div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:0.3rem;">
+                    <span class="badge badge-{color}">{icon} {typ.replace('_',' ')}</span>
+                    <div class="rec-title" style="margin:0;">"{k.get('slowo','')}"</div>
+                </div>
+                <div class="rec-body">{k.get('powod','')}</div>
+                <div class="rec-action">▶ {k.get('szczegoly','')}</div>
+            </div>
+            """, unsafe_allow_html=True)
 
-        last_day  = cal.monthrange(sel_year2, sel_month2)[1]
-        date_from = f"{sel_year2}-{sel_month2:02d}-01"
-        date_to   = f"{sel_year2}-{sel_month2:02d}-{last_day:02d}"
-        progress  = st.progress(0)
-        results   = []
+    # Reklamy
+    ad_recs = analysis.get("rekomendacje_reklam", [])
+    if ad_recs:
+        section("Rekomendacje dotyczące reklam")
+        for a in ad_recs:
+            st.markdown(f"""
+            <div class="rec-card warn">
+                <div class="rec-title">📢 {a.get("problem","")}</div>
+                <div class="rec-action">▶ {a.get("akcja","")}</div>
+            </div>
+            """, unsafe_allow_html=True)
 
-        for i, (_, client) in enumerate(clients_df.iterrows()):
-            cname = client["nazwa"]
-            g_id  = str(client.get("google_ads_id","")).strip()
-            fb_id = str(client.get("meta_ads_id","")).strip()
-            g_net, fb_net = 0.0, 0.0
-            g_msg, fb_msg = "brak ID", "brak ID"
-
-            if g_id:
-                try:
-                    mcc = str(client.get("mcc_id","")).strip()
-                    ga_config = ga_base_config.copy()
-                    if mcc:
-                        ga_config["login_customer_id"] = mcc
-                    elif "GOOGLE_ADS_LOGIN_CUSTOMER_ID" in st.secrets["google_ads"]:
-                        ga_config["login_customer_id"] = st.secrets["google_ads"]["GOOGLE_ADS_LOGIN_CUSTOMER_ID"]
-                    ga_client  = GoogleAdsClient.load_from_dict(ga_config)
-                    ga_service = ga_client.get_service("GoogleAdsService")
-                    query = f"SELECT metrics.cost_micros FROM customer WHERE segments.date BETWEEN '{date_from}' AND '{date_to}'"
-                    response = ga_service.search_stream(customer_id=g_id.replace("-",""), query=query)
-                    total_micros = sum(row.metrics.cost_micros for batch in response for row in batch.results)
-                    g_net = round(total_micros / 1_000_000, 2)
-                    g_msg = "OK"
-                except GoogleAdsException as e:
-                    g_msg = f"Błąd: {e.error.code().name}"
-                except Exception as e:
-                    g_msg = f"Błąd: {str(e)[:50]}"
-
-            if fb_id:
-                try:
-                    acc_id   = fb_id if fb_id.startswith("act_") else f"act_{fb_id}"
-                    insights = AdAccount(acc_id).get_insights(params={
-                        "time_range": {"since": date_from, "until": date_to},
-                        "fields": [AdsInsights.Field.spend],
-                        "level": "account",
-                    })
-                    fb_net = round(sum(float(r["spend"]) for r in insights if "spend" in r), 2)
-                    fb_msg = "OK"
-                except Exception as e:
-                    fb_msg = f"Błąd: {str(e)[:50]}"
-
-            save_spend(cname, period2, g_net, fb_net)
-            results.append({"Klient":cname,"Google":g_msg,"G netto":f"{g_net:.0f} zł","Meta":fb_msg,"FB netto":f"{fb_net:.0f} zł"})
-            progress.progress((i+1)/len(clients_df))
-
-        st.success("Zaktualizowano! Przejdź do Dashboard.")
-        st.dataframe(pd.DataFrame(results), use_container_width=True, hide_index=True)
+    # Następne kroki
+    steps = analysis.get("nastepne_kroki", [])
+    if steps:
+        section("Następne kroki — co zrobić teraz")
+        for i, step in enumerate(steps, 1):
+            st.markdown(f"""
+            <div style="display:flex;align-items:flex-start;gap:1rem;padding:0.8rem 0;
+                 border-bottom:1px solid var(--border);">
+                <div style="font-family:'Bebas Neue',sans-serif;font-size:1.8rem;
+                     color:var(--coral);line-height:1;min-width:32px;">{i}</div>
+                <div style="color:var(--text);font-size:0.9rem;line-height:1.6;padding-top:0.2rem;">
+                    {step}
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
 
 # ══════════════════════════════════════════════════════════════════════════════
-# USTAWIENIA
+# SIDEBAR
 # ══════════════════════════════════════════════════════════════════════════════
-elif page == "Ustawienia":
-    page_header("Ustawienia API", "Konfiguracja połączeń z platformami reklamowymi")
-    st.info("Tokeny API wpisuj w Streamlit Cloud → Settings → Secrets — nigdy w kodzie!")
-    section("Wymagane wpisy w Secrets")
-    st.code("""
-[gcp_service_account]
-type = "service_account"
-project_id = "ermon-budget-tracker"
-private_key_id = "..."
-private_key = "..."
-client_email = "ermon-sheets@ermon-budget-tracker.iam.gserviceaccount.com"
-client_id = "..."
-auth_uri = "https://accounts.google.com/o/oauth2/auth"
-token_uri = "https://oauth2.googleapis.com/token"
-auth_provider_x509_cert_url = "https://www.googleapis.com/oauth2/v1/certs"
-client_x509_cert_url = "..."
+clients_df = load_clients()
+today      = date.today()
 
-[google_ads]
-GOOGLE_ADS_DEVELOPER_TOKEN = "..."
-GOOGLE_ADS_CLIENT_ID = "..."
-GOOGLE_ADS_CLIENT_SECRET = "..."
-GOOGLE_ADS_REFRESH_TOKEN = "..."
-GOOGLE_ADS_LOGIN_CUSTOMER_ID = "..."
+with st.sidebar:
+    st.markdown("---")
+    st.caption("📅 " + today.strftime("%d.%m.%Y"))
+    st.markdown("---")
 
-[meta]
-META_ACCESS_TOKEN = "..."
-META_API_VERSION = "v19.0"
-    """, language="toml")
+    if clients_df.empty:
+        st.warning("Brak klientów w bazie.")
+        st.stop()
+
+    # Filtruj klientów którzy mają google_ads_id
+    ga_clients = clients_df[
+        clients_df["google_ads_id"].astype(str).str.strip().ne("") &
+        clients_df["google_ads_id"].notna()
+    ]
+    if ga_clients.empty:
+        st.warning("Żaden klient nie ma ustawionego Google Ads ID.")
+        st.stop()
+
+    sel_client = st.selectbox(
+        "Klient",
+        ga_clients["nazwa"].tolist(),
+        help="Tylko klienci z Google Ads ID"
+    )
+
+    st.markdown("**Zakres dat**")
+    col_d1, col_d2 = st.columns(2)
+    # Domyślnie ostatnie 30 dni
+    default_from = today - timedelta(days=30)
+    date_from = col_d1.date_input("Od", value=default_from, key="df")
+    date_to   = col_d2.date_input("Do", value=today, key="dt")
+
+    st.markdown("---")
+    run_analysis = st.button(
+        "🔍 Analizuj kampanie",
+        use_container_width=True,
+        type="primary"
+    )
+
+# ══════════════════════════════════════════════════════════════════════════════
+# MAIN
+# ══════════════════════════════════════════════════════════════════════════════
+page_header("Ads Analyzer", f"Analiza AI · Google Ads")
+
+if not run_analysis:
+    # Stan startowy
+    client_row = ga_clients[ga_clients["nazwa"] == sel_client].iloc[0]
+    g_id = str(client_row.get("google_ads_id", "")).strip()
+
+    st.markdown(f"""
+    <div class="analyze-box">
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:2.5rem;color:var(--white);
+             letter-spacing:0.05em;margin-bottom:0.5rem;">
+            {sel_client}
+        </div>
+        <div style="color:var(--muted);font-size:0.8rem;letter-spacing:0.12em;
+             text-transform:uppercase;margin-bottom:1.5rem;">
+            Google Ads ID: {g_id} &nbsp;·&nbsp; {date_from.strftime("%d.%m.%Y")} — {date_to.strftime("%d.%m.%Y")}
+        </div>
+        <div style="color:#8090ff;font-size:0.9rem;">
+            Kliknij <strong style="color:var(--white);">Analizuj kampanie</strong> w menu bocznym,<br>
+            żeby pobrać dane i uruchomić analizę AI.
+        </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:1rem;margin-top:1rem;">
+        <div class="kpi"><div class="kpi-label">Co analizuję</div><div class="kpi-value" style="font-size:1.2rem;color:#8090ff;">Kampanie</div><div class="kpi-sub">status, metryki, IS, bidding</div></div>
+        <div class="kpi"><div class="kpi-label">Co analizuję</div><div class="kpi-value" style="font-size:1.2rem;color:#8090ff;">Słowa kluczowe</div><div class="kpi-sub">QS, CPA, match type</div></div>
+        <div class="kpi"><div class="kpi-label">Co analizuję</div><div class="kpi-value" style="font-size:1.2rem;color:#8090ff;">Search Terms</div><div class="kpi-sub">frazy do wykluczenia</div></div>
+        <div class="kpi"><div class="kpi-label">Co analizuję</div><div class="kpi-value" style="font-size:1.2rem;color:#8090ff;">Reklamy</div><div class="kpi-sub">CTR, konwersje, URL</div></div>
+    </div>
+    """, unsafe_allow_html=True)
+    st.stop()
+
+# ── RUN ANALYSIS ──────────────────────────────────────────────────────────────
+client_row = ga_clients[ga_clients["nazwa"] == sel_client].iloc[0]
+g_id       = str(client_row.get("google_ads_id", "")).strip()
+mcc_id     = str(client_row.get("mcc_id", "")).strip()
+date_from_str = date_from.strftime("%Y-%m-%d")
+date_to_str   = date_to.strftime("%Y-%m-%d")
+
+st.markdown(f"""
+<div style="font-size:0.75rem;color:var(--muted);letter-spacing:0.1em;
+     text-transform:uppercase;margin-bottom:1rem;">
+    {sel_client} &nbsp;·&nbsp; {date_from.strftime("%d.%m.%Y")} — {date_to.strftime("%d.%m.%Y")}
+</div>
+""", unsafe_allow_html=True)
+
+with st.status("Pobieranie danych z Google Ads...", expanded=True) as status:
+    try:
+        ga_client = get_ga_client(g_id, mcc_id)
+
+        st.write("📊 Pobieranie kampanii...")
+        campaigns = fetch_campaigns(ga_client, g_id, date_from_str, date_to_str)
+        st.write(f"   ✓ {len(campaigns)} kampanii")
+
+        st.write("🔑 Pobieranie słów kluczowych...")
+        keywords = fetch_keywords(ga_client, g_id, date_from_str, date_to_str)
+        st.write(f"   ✓ {len(keywords)} słów kluczowych")
+
+        st.write("🔍 Pobieranie search terms...")
+        search_terms = fetch_search_terms(ga_client, g_id, date_from_str, date_to_str)
+        st.write(f"   ✓ {len(search_terms)} fraz wyszukiwania")
+
+        st.write("📢 Pobieranie reklam...")
+        ads = fetch_ads(ga_client, g_id, date_from_str, date_to_str)
+        st.write(f"   ✓ {len(ads)} reklam")
+
+        st.write("🤖 Analizowanie przez Claude AI...")
+        data = {
+            "campaigns":    campaigns,
+            "keywords":     keywords,
+            "search_terms": search_terms,
+            "ads":          ads,
+        }
+        analysis = analyze_with_claude(data, sel_client, date_from_str, date_to_str)
+
+        status.update(label="Analiza gotowa!", state="complete", expanded=False)
+
+    except Exception as e:
+        status.update(label=f"Błąd: {e}", state="error")
+        st.error(f"Szczegóły: {e}")
+        st.stop()
+
+# ── QUICK KPIs ────────────────────────────────────────────────────────────────
+if campaigns:
+    total_cost  = sum(c["cost"] for c in campaigns)
+    total_conv  = sum(c["conversions"] for c in campaigns)
+    total_clicks= sum(c["clicks"] for c in campaigns)
+    avg_cpa     = round(total_cost / total_conv, 2) if total_conv > 0 else 0
+    waste_cost  = sum(t["cost"] for t in search_terms if t["conversions"] == 0 and t["cost"] > 10)
+
+    section("Podsumowanie okresu")
+    k1,k2,k3,k4,k5 = st.columns(5)
+    with k1: kpi_card("Łączny koszt",   f"{total_cost:.0f} PLN", "netto")
+    with k2: kpi_card("Konwersje",      f"{total_conv:.0f}",     f"CPA: {avg_cpa:.0f} PLN")
+    with k3: kpi_card("Kliknięcia",     f"{total_clicks:,}",     "łącznie")
+    with k4: kpi_card("Kampanie",       str(len(campaigns)),     "aktywnych")
+    with k5: kpi_card("Przepalone",     f"{waste_cost:.0f} PLN", "frazy 0 konwersji", accent=True)
+
+# ── RENDER AI ANALYSIS ────────────────────────────────────────────────────────
+if analysis:
+    section("Analiza AI")
+    render_analysis(analysis)
+
+    # Dane surowe w ekspanderze
+    with st.expander("📋 Dane surowe (kampanie)"):
+        if campaigns:
+            df_camp = pd.DataFrame(campaigns)
+            st.dataframe(df_camp, use_container_width=True, hide_index=True)
+
+    with st.expander("🔑 Dane surowe (słowa kluczowe)"):
+        if keywords:
+            df_kw = pd.DataFrame(keywords)
+            st.dataframe(df_kw, use_container_width=True, hide_index=True)
+
+    with st.expander("🔍 Search terms (wszystkie)"):
+        if search_terms:
+            df_st = pd.DataFrame(search_terms)
+            st.dataframe(df_st, use_container_width=True, hide_index=True)
+
+    # Eksport JSON
+    st.markdown("---")
+    json_export = json.dumps(analysis, ensure_ascii=False, indent=2)
+    st.download_button(
+        "📥 Pobierz raport JSON",
+        data=json_export.encode("utf-8"),
+        file_name=f"analiza_{sel_client.lower().replace(' ','_')}_{date_from_str}.json",
+        mime="application/json"
+    )
