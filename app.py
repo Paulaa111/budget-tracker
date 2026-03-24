@@ -473,134 +473,6 @@ def fetch_ads(ga_client, customer_id, date_from, date_to):
         st.warning(f"Błąd pobierania reklam: {e}")
     return rows
 
-# ── CLAUDE ANALYSIS ───────────────────────────────────────────────────────────
-def analyze_with_claude(data: dict, client_name: str, date_from: str, date_to: str) -> dict:
-    """Wysyła dane do Claude API i zwraca ustrukturyzowaną analizę."""
-    import anthropic
-
-    campaigns_summary = []
-    for c in data.get("campaigns", [])[:20]:
-        campaigns_summary.append(
-            f"- {c['name']} | status: {c['status']} | bidding: {c['bidding']} | "
-            f"koszt: {c['cost']} PLN | kliknięcia: {c['clicks']} | "
-            f"konwersje: {c['conversions']} | CPA: {c.get('cpa','brak')} PLN | "
-            f"ROAS: {c.get('roas','brak')} | CTR: {c['ctr']}% | "
-            f"IS: {c.get('impression_share','?')}% | "
-            f"stracone_budget: {c.get('lost_budget','?')}% | "
-            f"stracone_ranking: {c.get('lost_rank','?')}%"
-        )
-
-    kw_summary = []
-    for k in data.get("keywords", [])[:40]:
-        kw_summary.append(
-            f"- [{k['match_type']}] \"{k['keyword']}\" | QS: {k.get('qs','?')} | "
-            f"koszt: {k['cost']} PLN | konwersje: {k['conversions']} | "
-            f"CPA: {k.get('cpa','brak')} PLN | kliknięcia: {k['clicks']}"
-        )
-
-    # Wyszukiwane frazy bez konwersji, drogie
-    waste_terms = [
-        t for t in data.get("search_terms", [])
-        if t["conversions"] == 0 and t["cost"] > 10
-    ]
-    waste_terms.sort(key=lambda x: x["cost"], reverse=True)
-    waste_summary = []
-    for t in waste_terms[:30]:
-        waste_summary.append(
-            f"- \"{t['term']}\" | koszt: {t['cost']} PLN | "
-            f"kliknięcia: {t['clicks']} | konwersje: 0 | kampania: {t['campaign']}"
-        )
-
-    ads_summary = []
-    for a in data.get("ads", [])[:20]:
-        ads_summary.append(
-            f"- [{a['type']}] {a['campaign']} / {a['ad_group']} | "
-            f"CTR: {a['ctr']}% | konwersje: {a['conversions']} | "
-            f"kliknięcia: {a['clicks']} | URL: {a.get('final_url','?')}"
-        )
-
-    prompt = f"""Jesteś ekspertem Google Ads z 10-letnim doświadczeniem. Analizujesz konto klienta: {client_name}.
-Okres: {date_from} — {date_to}.
-
-=== KAMPANIE ===
-{chr(10).join(campaigns_summary) if campaigns_summary else "Brak danych"}
-
-=== SŁOWA KLUCZOWE (top 40 wg kosztu) ===
-{chr(10).join(kw_summary) if kw_summary else "Brak danych"}
-
-=== FRAZY BEZ KONWERSJI (do wykluczenia) ===
-{chr(10).join(waste_summary) if waste_summary else "Brak fraz do wykluczenia"}
-
-=== REKLAMY ===
-{chr(10).join(ads_summary) if ads_summary else "Brak danych"}
-
-Zwróć analizę WYŁĄCZNIE jako JSON (bez żadnego tekstu przed ani po), w tej strukturze:
-{{
-  "podsumowanie": "2-3 zdania ogólnej oceny konta",
-  "ocena_ogolna": "zła|średnia|dobra",
-  "problemy_krytyczne": [
-    {{
-      "tytul": "krótki tytuł problemu",
-      "opis": "co dokładnie jest nie tak i dlaczego to problem",
-      "akcja": "dokładnie co zrobić krok po kroku",
-      "priorytet": "wysoki|średni|niski"
-    }}
-  ],
-  "co_dziala_dobrze": [
-    {{
-      "tytul": "co jest ok",
-      "opis": "dlaczego to działa dobrze"
-    }}
-  ],
-  "slowa_do_wykluczenia": ["fraza1", "fraza2", "fraza3"],
-  "rekomendacje_stawek": [
-    {{
-      "kampania": "nazwa kampanii",
-      "obecna_strategia": "co jest teraz",
-      "rekomendacja": "co zmienić i dlaczego",
-      "akcja": "dokładny krok"
-    }}
-  ],
-  "rekomendacje_slow_kluczowych": [
-    {{
-      "akcja_typ": "dodaj|wyklucz|zmień_dopasowanie|wstrzymaj",
-      "slowo": "słowo kluczowe",
-      "powod": "dlaczego",
-      "szczegoly": "jak dokładnie to zrobić"
-    }}
-  ],
-  "rekomendacje_reklam": [
-    {{
-      "problem": "co jest nie tak z reklamami",
-      "akcja": "co zrobić"
-    }}
-  ],
-  "nastepne_kroki": [
-    "Krok 1: ...",
-    "Krok 2: ...",
-    "Krok 3: ..."
-  ]
-}}"""
-
-    try:
-        client = anthropic.Anthropic(api_key=st.secrets["anthropic"]["ANTHROPIC_API_KEY"])
-        message = client.messages.create(
-            model="claude-opus-4-5",
-            max_tokens=4000,
-            messages=[{"role": "user", "content": prompt}]
-        )
-        raw = message.content[0].text.strip()
-        # Usuń markdown fences jeśli są
-        raw = re.sub(r"^```json\s*", "", raw)
-        raw = re.sub(r"^```\s*",     "", raw)
-        raw = re.sub(r"\s*```$",     "", raw)
-        return json.loads(raw)
-    except json.JSONDecodeError as e:
-        st.error(f"Błąd parsowania odpowiedzi Claude: {e}")
-        return {}
-    except Exception as e:
-        st.error(f"Błąd Claude API: {e}")
-        return {}
 
 # ── RENDER ANALYSIS ───────────────────────────────────────────────────────────
 def render_analysis(analysis: dict):
@@ -736,6 +608,54 @@ def render_analysis(analysis: dict):
             </div>
             """, unsafe_allow_html=True)
 
+
+    def run_local_audit(data):
+    """Analizuje dane pobrane z Google Ads i zwraca rekomendacje (zamiast Claude)."""
+    recommendations = {
+        "podsumowanie": "Automatyczny audyt techniczny wykonany na podstawie twardych danych z konta.",
+        "ocena_ogolna": "dobra",
+        "problemy_krytyczne": [],
+        "slowa_do_wykluczenia": [],
+        "rekomendacje_reklam": [],
+        "nastepne_kroki": ["Sprawdź listę wykluczeń", "Skoryguj stawki w najdroższych kampaniach"]
+    }
+
+    # 1. Analiza kampanii (Marnotrawstwo)
+    for c in data.get("campaigns", []):
+        if c['cost'] > 100 and c['conversions'] == 0:
+            recommendations["problemy_krytyczne"].append({
+                "tytul": f"Przepalanie budżetu: {c['name']}",
+                "opis": f"Kampania wydała {c['cost']} PLN i nie przyniosła żadnej konwersji.",
+                "akcja": "Zmniejsz budżet dzienny lub sprawdź stronę docelową.",
+                "priorytet": "wysoki"
+            })
+            recommendations["ocena_ogolna"] = "zła"
+
+    # 2. Analiza Search Terms (Słowa do wykluczenia)
+    for t in data.get("search_terms", []):
+        if t['cost'] > 20 and t['conversions'] == 0:
+            recommendations["slowa_do_wykluczenia"].append(t['term'])
+
+    # 3. Analiza Słów Kluczowych (Quality Score)
+    for k in data.get("keywords", []):
+        if k['qs'] and k['qs'] < 4:
+            recommendations["problemy_krytyczne"].append({
+                "tytul": f"Niska jakość: {k['keyword']}",
+                "opis": f"Wynik jakości (QS) wynosi tylko {k['qs']}/10.",
+                "akcja": "Dopasuj treść reklamy do tego słowa, aby obniżyć koszty kliknięć.",
+                "priorytet": "średni"
+            })
+
+    # 4. Analiza Reklam (Słaby CTR)
+    for a in data.get("ads", []):
+        if a['impressions'] > 500 and a['ctr'] < 1.0:
+            recommendations["rekomendacje_reklam"].append({
+                "problem": f"Niski CTR ({a['ctr']}%) w grupie {a['ad_group']}",
+                "akcja": "Napisz nowe nagłówki, obecne nie przyciągają uwagi użytkowników."
+            })
+
+    return recommendations
+
 # ══════════════════════════════════════════════════════════════════════════════
 # SIDEBAR
 # ══════════════════════════════════════════════════════════════════════════════
@@ -829,41 +749,37 @@ st.markdown(f"""
 </div>
 """, unsafe_allow_html=True)
 
+# ZNAJDŹ TO MIEJSCE W SWOIM KODZIE:
 with st.status("Pobieranie danych z Google Ads...", expanded=True) as status:
     try:
         ga_client = get_ga_client(g_id, mcc_id)
-
-        st.write("📊 Pobieranie kampanii...")
+        
+        # Pobierasz dane (to zostaje bez zmian)
         campaigns = fetch_campaigns(ga_client, g_id, date_from_str, date_to_str)
-        st.write(f"   ✓ {len(campaigns)} kampanii")
-
-        st.write("🔑 Pobieranie słów kluczowych...")
         keywords = fetch_keywords(ga_client, g_id, date_from_str, date_to_str)
-        st.write(f"   ✓ {len(keywords)} słów kluczowych")
-
-        st.write("🔍 Pobieranie search terms...")
-        search_terms = fetch_search_terms(ga_client, g_id, date_from_str, date_to_str)
-        st.write(f"   ✓ {len(search_terms)} fraz wyszukiwania")
-
-        st.write("📢 Pobieranie reklam...")
+        terms = fetch_search_terms(ga_client, g_id, date_from_str, date_to_str)
         ads = fetch_ads(ga_client, g_id, date_from_str, date_to_str)
-        st.write(f"   ✓ {len(ads)} reklam")
 
-        st.write("🤖 Analizowanie przez Claude AI...")
-        data = {
-            "campaigns":    campaigns,
-            "keywords":     keywords,
-            "search_terms": search_terms,
-            "ads":          ads,
+        all_data = {
+            "campaigns": campaigns,
+            "keywords": keywords,
+            "search_terms": terms,
+            "ads": ads
         }
-        analysis = analyze_with_claude(data, sel_client, date_from_str, date_to_str)
 
-        status.update(label="Analiza gotowa!", state="complete", expanded=False)
+        # --- TĄ LINIĘ ZMIENIAMY ---
+        # ZAMIAST: analysis = analyze_with_claude(all_data, sel_client, ...)
+        analysis = run_local_audit(all_data) 
+        # --------------------------
+
+        status.update(label="Analiza zakończona!", state="complete", expanded=False)
+        
+        # To zostaje - Twoja funkcja render_analysis wyświetli 
+        # wyniki z Pythona tak samo ładnie, jak te od Claude!
+        render_analysis(analysis)
 
     except Exception as e:
-        status.update(label=f"Błąd: {e}", state="error")
-        st.error(f"Szczegóły: {e}")
-        st.stop()
+        st.error(f"Coś poszło nie tak: {e}")
 
 # ── QUICK KPIs ────────────────────────────────────────────────────────────────
 if campaigns:
