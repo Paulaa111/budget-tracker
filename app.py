@@ -610,51 +610,51 @@ def render_analysis(analysis: dict):
 
 
     def run_local_audit(data):
-    """Analizuje dane pobrane z Google Ads i zwraca rekomendacje (zamiast Claude)."""
-    recommendations = {
-        "podsumowanie": "Automatyczny audyt techniczny wykonany na podstawie twardych danych z konta.",
-        "ocena_ogolna": "dobra",
-        "problemy_krytyczne": [],
-        "slowa_do_wykluczenia": [],
-        "rekomendacje_reklam": [],
-        "nastepne_kroki": ["Sprawdź listę wykluczeń", "Skoryguj stawki w najdroższych kampaniach"]
-    }
-
-    # 1. Analiza kampanii (Marnotrawstwo)
-    for c in data.get("campaigns", []):
-        if c['cost'] > 100 and c['conversions'] == 0:
-            recommendations["problemy_krytyczne"].append({
-                "tytul": f"Przepalanie budżetu: {c['name']}",
-                "opis": f"Kampania wydała {c['cost']} PLN i nie przyniosła żadnej konwersji.",
-                "akcja": "Zmniejsz budżet dzienny lub sprawdź stronę docelową.",
-                "priorytet": "wysoki"
-            })
-            recommendations["ocena_ogolna"] = "zła"
-
-    # 2. Analiza Search Terms (Słowa do wykluczenia)
-    for t in data.get("search_terms", []):
-        if t['cost'] > 20 and t['conversions'] == 0:
-            recommendations["slowa_do_wykluczenia"].append(t['term'])
-
-    # 3. Analiza Słów Kluczowych (Quality Score)
-    for k in data.get("keywords", []):
-        if k['qs'] and k['qs'] < 4:
-            recommendations["problemy_krytyczne"].append({
-                "tytul": f"Niska jakość: {k['keyword']}",
-                "opis": f"Wynik jakości (QS) wynosi tylko {k['qs']}/10.",
-                "akcja": "Dopasuj treść reklamy do tego słowa, aby obniżyć koszty kliknięć.",
-                "priorytet": "średni"
-            })
-
-    # 4. Analiza Reklam (Słaby CTR)
-    for a in data.get("ads", []):
-        if a['impressions'] > 500 and a['ctr'] < 1.0:
-            recommendations["rekomendacje_reklam"].append({
-                "problem": f"Niski CTR ({a['ctr']}%) w grupie {a['ad_group']}",
-                "akcja": "Napisz nowe nagłówki, obecne nie przyciągają uwagi użytkowników."
-            })
-
-    return recommendations
+        """Analizuje dane pobrane z Google Ads i zwraca rekomendacje (zamiast Claude)."""
+        recommendations = {
+            "podsumowanie": "Automatyczny audyt techniczny wykonany na podstawie twardych danych z konta.",
+            "ocena_ogolna": "dobra",
+            "problemy_krytyczne": [],
+            "slowa_do_wykluczenia": [],
+            "rekomendacje_reklam": [],
+            "nastepne_kroki": ["Sprawdź listę wykluczeń", "Skoryguj stawki w najdroższych kampaniach"]
+        }
+    
+        # 1. Analiza kampanii (Marnotrawstwo)
+        for c in data.get("campaigns", []):
+            if c['cost'] > 100 and c['conversions'] == 0:
+                recommendations["problemy_krytyczne"].append({
+                    "tytul": f"Przepalanie budżetu: {c['name']}",
+                    "opis": f"Kampania wydała {c['cost']} PLN i nie przyniosła żadnej konwersji.",
+                    "akcja": "Zmniejsz budżet dzienny lub sprawdź stronę docelową.",
+                    "priorytet": "wysoki"
+                })
+                recommendations["ocena_ogolna"] = "zła"
+    
+        # 2. Analiza Search Terms (Słowa do wykluczenia)
+        for t in data.get("search_terms", []):
+            if t['cost'] > 20 and t['conversions'] == 0:
+                recommendations["slowa_do_wykluczenia"].append(t['term'])
+    
+        # 3. Analiza Słów Kluczowych (Quality Score)
+        for k in data.get("keywords", []):
+            if k['qs'] and k['qs'] < 4:
+                recommendations["problemy_krytyczne"].append({
+                    "tytul": f"Niska jakość: {k['keyword']}",
+                    "opis": f"Wynik jakości (QS) wynosi tylko {k['qs']}/10.",
+                    "akcja": "Dopasuj treść reklamy do tego słowa, aby obniżyć koszty kliknięć.",
+                    "priorytet": "średni"
+                })
+    
+        # 4. Analiza Reklam (Słaby CTR)
+        for a in data.get("ads", []):
+            if a['impressions'] > 500 and a['ctr'] < 1.0:
+                recommendations["rekomendacje_reklam"].append({
+                    "problem": f"Niski CTR ({a['ctr']}%) w grupie {a['ad_group']}",
+                    "akcja": "Napisz nowe nagłówki, obecne nie przyciągają uwagi użytkowników."
+                })
+    
+        return recommendations
 
 # ══════════════════════════════════════════════════════════════════════════════
 # SIDEBAR
