@@ -549,30 +549,102 @@ def run_full_audit(data: dict) -> dict:
             ),
         })
 
-    # ── 7. SŁOWA KLUCZOWE DO WYKLUCZENIA ─────────────────────────────────────
-    waste_terms = [
-        t for t in search_terms
-        if t["conversions"] == 0 and t["cost"] >= WASTE_COST_THRESH and t["status"] != "NEGATIVE"
-    ]
+    # ── 7. SŁOWA KLUCZOWE DO WYKLUCZENIA — smart filter ──────────────────────
+    # Buduj słownik branży z aktywnych słów kluczowych kampanii.
+    # Tokenizuj każde słowo kluczowe na pojedyncze tokeny (min 3 znaki).
+    # Search term który nie zawiera żadnego tokenu = nierelated = kandydat do wykluczenia.
+
+    def build_brand_vocab(keywords: list) -> set:
+        """Wyciąga unikalne tokeny ze słów kluczowych kampanii."""
+        stop_words = {
+            # ogólne słowa które są w każdej branży — ignoruj przy porównaniu
+            "jak", "co", "ile", "czy", "dla", "bez", "przy", "pod", "nad",
+            "gdzie", "kiedy", "który", "która", "które", "tego", "tej",
+            "the", "and", "for", "with", "how", "what", "best", "buy",
+            "cena", "ceny", "sklep", "online", "tanie", "tanio", "najtaniej",
+            "opinie", "ranking", "porównanie", "oferta", "promocja", "rabat",
+            "dostawa", "wysyłka", "zamówienie", "zamów", "kup", "kupić",
+        }
+        vocab = set()
+        for kw in keywords:
+            text = kw.get("keyword", "").lower()
+            # usuń operatory dopasowania (+, "", [])
+            text = re.sub(r'[\[\]"+]', '', text)
+            tokens = re.split(r'\s+', text.strip())
+            for token in tokens:
+                token = token.strip(".,!?")
+                if len(token) >= 3 and token not in stop_words:
+                    vocab.add(token)
+        return vocab
+
+    def is_irrelevant(term: str, vocab: set) -> bool:
+        """
+        Zwraca True jeśli żaden token z frazy nie pasuje do słownika branży.
+        Używa stemming-lite: sprawdza czy token z frazy jest podciągiem
+        tokenu z vocab lub odwrotnie (obsługuje odmianę).
+        """
+        term_tokens = re.split(r'\s+', term.lower().strip())
+        term_tokens = [t.strip(".,!?") for t in term_tokens if len(t) >= 3]
+        if not term_tokens:
+            return False
+        for t_tok in term_tokens:
+            for v_tok in vocab:
+                # dopasowanie dokładne lub prefiks (stem-lite dla j. polskiego)
+                if t_tok == v_tok:
+                    return False
+                if len(t_tok) >= 4 and len(v_tok) >= 4:
+                    # sprawdź czy jeden jest prefiksem drugiego (min 4 znaki)
+                    prefix_len = min(len(t_tok), len(v_tok), 6)
+                    if t_tok[:prefix_len] == v_tok[:prefix_len]:
+                        return False
+        return True
+
+    # Zbuduj słownik branży
+    brand_vocab = build_brand_vocab(keywords)
+
+    # Filtruj search terms: nierelated + minimalny koszt/kliki żeby nie śmiecić
+    waste_terms = []
+    for t in search_terms:
+        if t["status"] == "NEGATIVE":
+            continue
+        if t["conversions"] > 0:
+            continue
+        # Progi — fraza musi mieć realny koszt żeby warto było ją wykluczać
+        if t["cost"] < WASTE_COST_THRESH and t["clicks"] < 8:
+            continue
+        # Kluczowy test: czy fraza jest nierelated z branżą klienta?
+        if brand_vocab and not is_irrelevant(t["term"], brand_vocab):
+            # Fraza pasuje do branży — nie wykluczaj, nawet jeśli 0 konwersji
+            continue
+        waste_terms.append(t)
+
     waste_terms.sort(key=lambda x: x["cost"], reverse=True)
     excl_words = [t["term"] for t in waste_terms]
 
     if waste_terms:
         total_waste = sum(t["cost"] for t in waste_terms)
         score -= min(15, len(waste_terms))
+        vocab_note = (
+            f" Filtr branżowy oparty na {len(brand_vocab)} tokenach z aktywnych słów kluczowych — "
+            "sugerowane frazy nie pasują tematycznie do konta."
+            if brand_vocab else
+            " Uwaga: brak słów kluczowych do porównania — sprawdź listę ręcznie."
+        )
         findings.append({
             "priority": "HIGH" if total_waste > 100 else "MEDIUM",
             "category": "Wykluczenia",
-            "title": f"Przepalone {total_waste:.0f} PLN na frazy bez konwersji ({len(waste_terms)} fraz)",
+            "title": f"Nierelated frazy bez konwersji — {total_waste:.0f} PLN przepalone ({len(waste_terms)} fraz)",
             "desc": (
-                f"Top frazy do wykluczenia: "
-                + ", ".join(f'<strong>"{t["term"]}"</strong> ({t["cost"]} PLN)' for t in waste_terms[:5])
-                + ("..." if len(waste_terms) > 5 else "")
+                "Te frazy nie mają związku z branżą klienta "
+                "(nie zawierają żadnego słowa z aktywnych kampanii) i nie wygenerowały konwersji. Top: "
+                + ", ".join(f'"{t["term"]}" ({t["cost"]} PLN, {t["clicks"]} kliknięć)' for t in waste_terms[:6])
+                + ("..." if len(waste_terms) > 6 else ".")
+                + vocab_note
             ),
             "action": (
-                "Dodaj te frazy jako wykluczające słowa kluczowe (exact match) do odpowiednich kampanii. "
-                "Zrób to w Google Ads → Słowa kluczowe → Wykluczające. "
-                f"Odzysk potencjalny: {total_waste:.0f} PLN w analizowanym okresie."
+                "Dodaj jako [exact match] do listy wykluczeń kampanii lub na poziomie konta (shared negative list). "
+                "Google Ads → Słowa kluczowe → Wykluczające. "
+                f"Potencjalny odzysk budżetu: {total_waste:.0f} PLN / okres."
             ),
             "_excl_terms": excl_words,
         })
