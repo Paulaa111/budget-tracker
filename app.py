@@ -143,7 +143,7 @@ def fetch_campaigns(ga_client, cid, date_from, date_to):
             metrics.search_absolute_top_impression_share
         FROM campaign
         WHERE segments.date BETWEEN '{date_from}' AND '{date_to}'
-          AND campaign.status != 'REMOVED'
+          AND campaign.status = 'ENABLED'
         ORDER BY metrics.cost_micros DESC
     """
     rows = []
@@ -322,8 +322,8 @@ def fetch_ad_groups(ga_client, cid, date_from, date_to):
             metrics.conversions, metrics.ctr
         FROM ad_group
         WHERE segments.date BETWEEN '{date_from}' AND '{date_to}'
-          AND ad_group.status != 'REMOVED'
-          AND campaign.status != 'REMOVED'
+          AND ad_group.status = 'ENABLED'
+          AND campaign.status = 'ENABLED'
         ORDER BY metrics.cost_micros DESC
         LIMIT 100
     """
@@ -354,7 +354,8 @@ def run_full_audit(data: dict) -> dict:
     Pełna diagnostyka konta Google Ads.
     Zwraca pogrupowane znaleziska z priorytetami HIGH / MEDIUM / LOW.
     """
-    campaigns    = data.get("campaigns", [])
+    campaigns    = [c for c in data.get("campaigns", []) if c.get("status") == "ENABLED"]
+    # Kampanie PAUSED/inne są wykluczone z audytu — analizujemy tylko aktywne
     keywords     = data.get("keywords", [])
     search_terms = data.get("search_terms", [])
     ads          = data.get("ads", [])
