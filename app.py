@@ -407,7 +407,7 @@ def run_full_audit(data: dict) -> dict:
 
     # ── 2. KAMPANIE BEZ KONWERSJI ─────────────────────────────────────────────
     for c in campaigns:
-        if c["cost"] >= ZERO_CONV_CAMP and c["conversions"] == 0:
+        if (c["cost"] or 0) >= ZERO_CONV_CAMP and (c["conversions"] or 0) == 0:
             score -= 10
             findings.append({
                 "priority": "HIGH", "category": "Konwersje",
@@ -424,7 +424,7 @@ def run_full_audit(data: dict) -> dict:
                     "4. Jeśli tracking OK, wstrzymaj kampanię i przebuduj."
                 ),
             })
-        elif c["cost"] >= 50 and c["conversions"] == 0:
+        elif (c["cost"] or 0) >= 50 and (c["conversions"] or 0) == 0:
             score -= 4
             findings.append({
                 "priority": "MEDIUM", "category": "Konwersje",
@@ -465,7 +465,7 @@ def run_full_audit(data: dict) -> dict:
     # ── 4. ROAS vs TARGET ROAS ────────────────────────────────────────────────
     for c in campaigns:
         if c.get("target_roas") and c.get("roas") and c["roas"] > 0:
-            if c["roas"] < c["target_roas"] * 0.6:
+            if (c["roas"] or 0) < (c["target_roas"] or 0) * 0.6:
                 score -= 7
                 findings.append({
                     "priority": "HIGH", "category": "Konwersje",
@@ -509,8 +509,8 @@ def run_full_audit(data: dict) -> dict:
             })
 
     # ── 6. QUALITY SCORE ──────────────────────────────────────────────────────
-    very_low_qs = [k for k in keywords if k.get("qs") and k["qs"] <= QS_VERY_LOW and k["cost"] > 5]
-    low_qs      = [k for k in keywords if k.get("qs") and QS_VERY_LOW < k["qs"] <= QS_LOW and k["cost"] > 10]
+    very_low_qs = [k for k in keywords if k.get("qs") and k["qs"] <= QS_VERY_LOW and (k["cost"] or 0) > 5]
+    low_qs      = [k for k in keywords if k.get("qs") and QS_VERY_LOW < k["qs"] <= QS_LOW and (k["cost"] or 0) > 10]
 
     for k in very_low_qs[:5]:
         score -= 5
@@ -607,10 +607,10 @@ def run_full_audit(data: dict) -> dict:
     for t in search_terms:
         if t["status"] == "NEGATIVE":
             continue
-        if t["conversions"] > 0:
+        if (t["conversions"] or 0) > 0:
             continue
         # Progi — fraza musi mieć realny koszt żeby warto było ją wykluczać
-        if t["cost"] < WASTE_COST_THRESH and t["clicks"] < 8:
+        if (t["cost"] or 0) < WASTE_COST_THRESH and (t["clicks"] or 0) < 8:
             continue
         # Kluczowy test: czy fraza jest nierelated z branżą klienta?
         if brand_vocab and not is_irrelevant(t["term"], brand_vocab):
@@ -652,7 +652,7 @@ def run_full_audit(data: dict) -> dict:
     # ── 8. BROAD MATCH bez konwersji ──────────────────────────────────────────
     broad_waste = [
         k for k in keywords
-        if k["match_type"] == "BROAD" and k["conversions"] == 0 and k["cost"] >= BROAD_WITHOUT_CONV
+        if k["match_type"] == "BROAD" and (k["conversions"] or 0) == 0 and (k["cost"] or 0) >= BROAD_WITHOUT_CONV
     ]
     if broad_waste:
         score -= 5
@@ -671,7 +671,7 @@ def run_full_audit(data: dict) -> dict:
     # ── 9. SŁOWA Z WYSOKIM KOSZTEM BEZ WARTOŚCI ──────────────────────────────
     expensive_no_conv = [
         k for k in keywords
-        if k["conversions"] == 0 and k["cost"] >= 80 and k.get("qs", 10) >= 5
+        if (k["conversions"] or 0) == 0 and (k["cost"] or 0) >= 80 and (k.get("qs") or 10) >= 5
     ]
     for k in expensive_no_conv[:4]:
         score -= 4
@@ -684,11 +684,11 @@ def run_full_audit(data: dict) -> dict:
 
     # ── 10. CTR kampanii ──────────────────────────────────────────────────────
     for c in campaigns:
-        if c["impressions"] < 200:
+        if (c["impressions"] or 0) < 200:
             continue
         channel = c.get("channel", "")
         threshold = CTR_DISPLAY_MIN if "DISPLAY" in channel else CTR_SEARCH_MIN
-        if c["ctr"] < threshold:
+        if (c["ctr"] or 0) < threshold:
             score -= 3
             findings.append({
                 "priority": "MEDIUM", "category": "Reklamy",
@@ -721,7 +721,7 @@ def run_full_audit(data: dict) -> dict:
 
     low_ctr_ads = [
         a for a in ads
-        if a["impressions"] >= 300 and a["ctr"] < MIN_CTR_AD and a["status"] == "ENABLED"
+        if (a["impressions"] or 0) >= 300 and (a["ctr"] or 0) < MIN_CTR_AD and a["status"] == "ENABLED"
     ]
     if low_ctr_ads:
         worst = sorted(low_ctr_ads, key=lambda x: x["ctr"])[:3]
@@ -739,7 +739,7 @@ def run_full_audit(data: dict) -> dict:
     # ── 12. GRUPY REKLAM bez ruchu ────────────────────────────────────────────
     dead_groups = [
         ag for ag in ad_groups
-        if ag["impressions"] == 0 and ag["status"] == "ENABLED"
+        if (ag["impressions"] or 0) == 0 and ag["status"] == "ENABLED"
     ]
     if dead_groups:
         score -= 3
@@ -755,7 +755,7 @@ def run_full_audit(data: dict) -> dict:
     for k in keywords:
         if k.get("cpc_bid") and k.get("cost") > 20:
             # Oblicz avg_cpc z kosztu i kliknięć
-            if k["clicks"] > 0:
+            if (k["clicks"] or 0) > 0:
                 avg_cpc_kw = round(k["cost"] / k["clicks"], 2)
                 if avg_cpc_kw > k["cpc_bid"] * 0.9:
                     findings.append({
@@ -769,7 +769,7 @@ def run_full_audit(data: dict) -> dict:
     # ── POZYTYWNE ZNALEZISKA ──────────────────────────────────────────────────
     positives = []
 
-    well_conv = [c for c in campaigns if c["conversions"] > 5 and c.get("cpa") and c["cpa"] > 0]
+    well_conv = [c for c in campaigns if (c["conversions"] or 0) > 5 and c.get("cpa") and (c["cpa"] or 0) > 0]
     if well_conv:
         best = min(well_conv, key=lambda x: x["cpa"])
         positives.append({
@@ -784,7 +784,7 @@ def run_full_audit(data: dict) -> dict:
             "desc": f"Słowa z QS 8–10: " + ", ".join(f'"{k["keyword"]}"' for k in high_qs[:4]) + ". Dobra robota.",
         })
 
-    good_is = [c for c in campaigns if c.get("is") and c["is"] >= 70]
+    good_is = [c for c in campaigns if c.get("is") and (c["is"] or 0) >= 70]
     if good_is:
         positives.append({
             "title": f"Wysoki Impression Share ({len(good_is)} kampanii)",
@@ -1052,7 +1052,7 @@ if campaigns:
     total_conv  = sum(c["conversions"] for c in campaigns)
     total_clicks= sum(c["clicks"] for c in campaigns)
     avg_cpa     = round(total_cost / total_conv, 2) if total_conv > 0 else 0
-    waste_cost  = sum(t["cost"] for t in search_terms if t["conversions"] == 0 and t["cost"] >= 15)
+    waste_cost  = sum(t["cost"] for t in search_terms if (t["conversions"] or 0) == 0 and (t["cost"] or 0) >= 15)
     total_roas  = round(sum(c["conv_value"] for c in campaigns) / total_cost, 2) if total_cost > 0 else 0
 
     section("Podsumowanie okresu")
