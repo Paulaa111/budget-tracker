@@ -333,6 +333,7 @@ menu_map = {
     "Budżety":      "Budżety",
     "Pobierz z API":"Pobierz",
     "Ustawienia":   "Ustawienia",
+    "PMax": "PMax",
 }
 
 with st.sidebar:
@@ -504,6 +505,223 @@ if page == "Dashboard":
                           color_discrete_sequence=["#2c016d","#3337bd","#ff466b","#7040d0","#ff8099"])
             fig2.update_layout(paper_bgcolor="rgba(0,0,0,0)", font=dict(color="#a0a0c0", family="DM Sans"), height=380)
             st.plotly_chart(fig2, use_container_width=True)
+
+# ══════════════════════════════════════════════════════════════════════════════
+# ZAKŁADKA PMAX — wklej do app.py jako nowy elif
+# ══════════════════════════════════════════════════════════════════════════════
+
+# 1. W menu_map dodaj:
+# "PMax": "PMax",
+
+# 2. Dodaj nową pozycję w menu:
+# "PMax Breakdown": "PMax",
+
+# 3. Wklej poniższy elif po sekcji Dashboard
+
+elif page == "PMax":
+    page_header("PMax Breakdown", "Podział wydatków kampanii Performance Max")
+
+    clients_df = load_clients()
+    if clients_df.empty:
+        st.info("Brak klientów.")
+        st.stop()
+
+    # filtruj tylko klientów z PMax
+    pmax_clients = clients_df[clients_df.get("has_pmax", pd.Series(dtype=str)).astype(str).str.lower() == "tak"]
+    
+    if "has_pmax" in clients_df.columns:
+        pmax_clients = clients_df[clients_df["has_pmax"].astype(str).str.lower() == "tak"]
+    else:
+        st.warning("Brak kolumny 'has_pmax' w arkuszu klienci.")
+        st.stop()
+
+    if pmax_clients.empty:
+        st.info("Brak klientów z PMax. Dodaj kolumnę 'has_pmax' w arkuszu klienci.")
+        st.stop()
+
+    c1, c2 = st.columns(2)
+    sel_year3  = c1.selectbox("Rok",  [today.year-1, today.year, today.year+1], index=1, key="py")
+    sel_month3 = c2.selectbox("Miesiąc", range(1,13), index=today.month-1,
+                              format_func=lambda m: calendar.month_name[m], key="pm")
+    period3   = f"{sel_year3}-{sel_month3:02d}"
+
+    if st.button("Pobierz dane PMax", use_container_width=True, type="primary"):
+        from google.ads.googleads.client import GoogleAdsClient
+        from google.ads.googleads.errors import GoogleAdsException
+        import calendar as cal
+
+        ga_base_config = {
+            "developer_token": st.secrets["google_ads"]["GOOGLE_ADS_DEVELOPER_TOKEN"],
+            "client_id":       st.secrets["google_ads"]["GOOGLE_ADS_CLIENT_ID"],
+            "client_secret":   st.secrets["google_ads"]["GOOGLE_ADS_CLIENT_SECRET"],
+            "refresh_token":   st.secrets["google_ads"]["GOOGLE_ADS_REFRESH_TOKEN"],
+            "use_proto_plus":  True,
+        }
+
+        last_day  = cal.monthrange(sel_year3, sel_month3)[1]
+        date_from = f"{sel_year3}-{sel_month3:02d}-01"
+        date_to   = f"{sel_year3}-{sel_month3:02d}-{last_day:02d}"
+
+        all_results = []
+        progress = st.progress(0)
+
+        for i, (_, client) in enumerate(pmax_clients.iterrows()):
+            cname = client["nazwa"]
+            g_id  = str(client.get("google_ads_id","")).strip()
+            grupa = str(client.get("grupa", cname)).strip() or cname
+
+            if not g_id:
+                continue
+
+            try:
+                mcc = str(client.get("mcc_id","")).strip()
+                ga_config = ga_base_config.copy()
+                if mcc:
+                    ga_config["login_customer_id"] = mcc
+                elif "GOOGLE_ADS_LOGIN_CUSTOMER_ID" in st.secrets["google_ads"]:
+                    ga_config["login_customer_id"] = st.secrets["google_ads"]["GOOGLE_ADS_LOGIN_CUSTOMER_ID"]
+
+                ga_client  = GoogleAdsClient.load_from_dict(ga_config)
+                ga_service = ga_client.get_service("GoogleAdsService")
+
+                # Zapytanie o podział PMax na kanały
+                query = f"""
+                    SELECT
+                        campaign.name,
+                        segments.date,
+                        segments.ad_network_type,
+                        segments.product_channel,
+                        metrics.cost_micros,
+                        metrics.impressions,
+                        metrics.clicks
+                    FROM campaign
+                    WHERE campaign.advertising_channel_type = 'PERFORMANCE_MAX'
+                    AND segments.date BETWEEN '{date_from}' AND '{date_to}'
+                    AND metrics.cost_micros > 0
+                """
+
+                response = ga_service.search_stream(
+                    customer_id=g_id.replace("-",""), query=query)
+
+                for batch in response:
+                    for row in batch.results:
+                        network = str(row.segments.ad_network_type).replace("AdNetworkType.", "")
+                        cost    = round(row.metrics.cost_micros / 1_000_000, 2)
+                        all_results.append({
+                            "Klient":    grupa,
+                            "Kampania":  row.campaign.name,
+                            "Kanał":     network,
+                            "Koszt":     cost,
+                            "Kliknięcia": row.metrics.clicks,
+                            "Wyświetlenia": row.metrics.impressions,
+                        })
+
+            except GoogleAdsException as e:
+                st.warning(f"{cname}: {e.error.code().name}")
+            except Exception as e:
+                st.warning(f"{cname}: {str(e)[:80]}")
+
+            progress.progress((i+1)/len(pmax_clients))
+
+        if not all_results:
+            st.warning("Brak danych PMax dla wybranego okresu.")
+            st.stop()
+
+        df_pmax = pd.DataFrame(all_results)
+
+        # mapowanie nazw kanałów na polskie
+        channel_map = {
+            "SEARCH":          "Wyszukiwarka",
+            "DISPLAY":         "Sieć reklamowa",
+            "YOUTUBE_WATCH":   "YouTube",
+            "YOUTUBE_SEARCH":  "YouTube Search",
+            "MIXED":           "Mixed",
+            "UNKNOWN":         "Inne",
+            "UNSPECIFIED":     "Inne",
+        }
+        df_pmax["Kanał"] = df_pmax["Kanał"].map(channel_map).fillna(df_pmax["Kanał"])
+
+        # zapisz w session state
+        st.session_state["pmax_data"]   = df_pmax
+        st.session_state["pmax_period"] = period3
+
+    # wyświetl dane jeśli są w session state
+    if "pmax_data" in st.session_state and st.session_state.get("pmax_period") == period3:
+        df_pmax = st.session_state["pmax_data"]
+
+        st.success(f"Dane za {calendar.month_name[sel_month3]} {sel_year3}")
+
+        # ── tabela zbiorcza per klient + kanał
+        section("Podział wydatków per klient i kanał")
+        df_grouped = df_pmax.groupby(["Klient","Kanał"])["Koszt"].sum().reset_index()
+        df_grouped["Koszt"] = df_grouped["Koszt"].round(0).astype(int)
+        df_pivot = df_grouped.pivot_table(
+            index="Klient", columns="Kanał", values="Koszt", fill_value=0
+        ).reset_index()
+        df_pivot["RAZEM"] = df_pivot.select_dtypes("number").sum(axis=1)
+
+        html_rows = ""
+        cols = [c for c in df_pivot.columns if c != "Klient"]
+        for i, row in df_pivot.iterrows():
+            bg = "#13132a" if i % 2 == 0 else "#0f0f22"
+            cells = f'<td style="padding:18px 20px;font-weight:600;color:#fff;border-right:1px solid #2a2a50;">{row["Klient"]}</td>'
+            for col in cols:
+                color = "#a080ff" if col == "RAZEM" else "#e8e8f5"
+                fw    = "700" if col == "RAZEM" else "400"
+                val   = row.get(col, 0)
+                cells += f'<td style="padding:18px 20px;text-align:right;border-right:1px solid #2a2a50;color:{color};font-weight:{fw};">{val} zł</td>'
+            html_rows += f'<tr style="background:{bg};border-bottom:1px solid #2a2a50;">{cells}</tr>'
+
+        header_cols = "".join([
+            f'<th style="padding:16px 20px;text-align:{"left" if c=="Klient" else "right"};border-bottom:1px solid rgba(255,255,255,0.1);">{c}</th>'
+            for c in ["Klient"] + cols
+        ])
+
+        st.html(f"""
+        <div style="border-radius:16px;overflow:hidden;border:1px solid #2a2a50;box-shadow:0 8px 32px rgba(0,0,0,0.4);">
+        <table style="width:100%;border-collapse:collapse;font-family:'DM Sans',sans-serif;font-size:16px;">
+            <thead>
+                <tr style="background:linear-gradient(135deg,#2c016d,#3337bd);color:rgba(255,255,255,0.7);font-size:11px;letter-spacing:0.18em;text-transform:uppercase;">
+                    {header_cols}
+                </tr>
+            </thead>
+            <tbody>{html_rows}</tbody>
+        </table>
+        </div>
+        """)
+
+        # ── szczegóły kampanii
+        section("Szczegóły kampanii")
+        import plotly.express as px
+
+        df_camp = df_pmax.groupby(["Klient","Kampania","Kanał"])["Koszt"].sum().reset_index()
+        df_camp["Koszt"] = df_camp["Koszt"].round(0).astype(int)
+
+        sel_klient = st.selectbox("Wybierz klienta", df_pmax["Klient"].unique().tolist())
+        df_filtered = df_camp[df_camp["Klient"] == sel_klient]
+
+        if not df_filtered.empty:
+            fig = px.bar(df_filtered, x="Kampania", y="Koszt", color="Kanał",
+                         barmode="stack",
+                         color_discrete_sequence=["#2c016d","#3337bd","#ff466b","#7040d0","#ff8099"],
+                         title=f"Wydatki PMax — {sel_klient}")
+            fig.update_layout(
+                paper_bgcolor="rgba(0,0,0,0)",
+                plot_bgcolor="rgba(0,0,0,0)",
+                font=dict(color="#a0a0c0", family="DM Sans"),
+                legend=dict(bgcolor="rgba(0,0,0,0)"),
+                xaxis=dict(gridcolor="#1e1e3a"),
+                yaxis=dict(gridcolor="#1e1e3a"),
+                height=400,
+            )
+            st.plotly_chart(fig, use_container_width=True)
+
+        # ── eksport
+        csv_pmax = df_pmax.to_csv(index=False, sep=";", decimal=",").encode("utf-8-sig")
+        st.download_button("Pobierz CSV", csv_pmax,
+                           file_name=f"ermon_pmax_{period3}.csv", mime="text/csv")
+    else:
+        st.info("Kliknij 'Pobierz dane PMax' aby załadować dane.")
 
 # ══════════════════════════════════════════════════════════════════════════════
 # KLIENCI
