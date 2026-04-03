@@ -588,7 +588,6 @@ elif page == "PMax":
                 query = f"""
                     SELECT
                         campaign.name,
-                        segments.date,
                         segments.ad_network_type,
                         metrics.cost_micros,
                         metrics.impressions,
