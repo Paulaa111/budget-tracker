@@ -641,7 +641,7 @@ elif page == "PMax":
             "3":               "Sieć reklamowa",
             "4":               "Sieć reklamowa",
             "8":               "YouTube",
-            "12":              "Shopping",
+            "12":              "Discover / Gmail / Maps",
             "16":              "Wyszukiwarka",
         }
         df_pmax["Kanał"] = df_pmax["Kanał"].map(channel_map).fillna(df_pmax["Kanał"])
