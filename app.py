@@ -637,6 +637,12 @@ elif page == "PMax":
             "MIXED":           "Mixed",
             "UNKNOWN":         "Inne",
             "UNSPECIFIED":     "Inne",
+            "2":               "Wyszukiwarka",
+            "3":               "Sieć reklamowa",
+            "4":               "Sieć reklamowa",
+            "8":               "YouTube",
+            "12":              "Shopping",
+            "16":              "Wyszukiwarka",
         }
         df_pmax["Kanał"] = df_pmax["Kanał"].map(channel_map).fillna(df_pmax["Kanał"])
 
