@@ -590,7 +590,6 @@ elif page == "PMax":
                         campaign.name,
                         segments.date,
                         segments.ad_network_type,
-                        segments.product_channel,
                         metrics.cost_micros,
                         metrics.impressions,
                         metrics.clicks
