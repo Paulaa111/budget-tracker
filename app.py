@@ -661,7 +661,8 @@ elif page == "PMax":
 
         # ── tabela zbiorcza per klient + kanał
         section("Podział wydatków per klient i kanał")
-        df_grouped = df_pmax.groupby(["Klient","Kanał"])["Koszt"].sum().reset_index()
+        df_grouped = df_pmax.groupby(["Klient","Kanał","Feed produktowy"])["Koszt"].sum().reset_index()
+        df_grouped["Kanał"] = df_grouped["Kanał"] + " (" + df_grouped["Feed produktowy"].map({"Tak": "z feedem", "Nie": "bez feedu"}) + ")"
         df_grouped["Koszt"] = df_grouped["Koszt"].round(0).astype(int)
         df_pivot = df_grouped.pivot_table(
             index="Klient", columns="Kanał", values="Koszt", fill_value=0
