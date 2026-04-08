@@ -588,7 +588,9 @@ elif page == "PMax":
                 query = f"""
                     SELECT
                         campaign.name,
+                        segments.date,
                         segments.ad_network_type,
+                        segments.ad_using_product_data,
                         metrics.cost_micros,
                         metrics.impressions,
                         metrics.clicks
@@ -603,15 +605,17 @@ elif page == "PMax":
 
                 for batch in response:
                     for row in batch.results:
-                        network = str(row.segments.ad_network_type).replace("AdNetworkType.", "")
-                        cost    = round(row.metrics.cost_micros / 1_000_000, 2)
+                        network      = str(row.segments.ad_network_type).replace("AdNetworkType.", "")
+                        uses_product = row.segments.ad_using_product_data
+                        cost         = round(row.metrics.cost_micros / 1_000_000, 2)
                         all_results.append({
-                            "Klient":    grupa,
-                            "Kampania":  row.campaign.name,
-                            "Kanał":     network,
-                            "Koszt":     cost,
-                            "Kliknięcia": row.metrics.clicks,
-                            "Wyświetlenia": row.metrics.impressions,
+                            "Klient":          grupa,
+                            "Kampania":        row.campaign.name,
+                            "Kanał":           network,
+                            "Feed produktowy": "Tak" if uses_product else "Nie",
+                            "Koszt":           cost,
+                            "Kliknięcia":      row.metrics.clicks,
+                            "Wyświetlenia":    row.metrics.impressions,
                         })
 
             except GoogleAdsException as e:
