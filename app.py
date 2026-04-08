@@ -506,13 +506,6 @@ if page == "Dashboard":
             fig2.update_layout(paper_bgcolor="rgba(0,0,0,0)", font=dict(color="#a0a0c0", family="DM Sans"), height=380)
             st.plotly_chart(fig2, use_container_width=True)
 
-    # ── tabela szczegółowa
-        section("Tabela szczegółowa")
-        df_table = df_grouped[["Klient","Kanał szczegółowy","Koszt"]].copy()
-        df_table["Koszt"] = df_table["Koszt"].round(0).astype(int)
-        df_table.columns = ["Klient","Kanał","Koszt (zł)"]
-        st.dataframe(df_table, use_container_width=True, hide_index=True)
-
 # ══════════════════════════════════════════════════════════════════════════════
 # ZAKŁADKA PMAX — wklej do app.py jako nowy elif
 # ══════════════════════════════════════════════════════════════════════════════
@@ -692,6 +685,13 @@ elif page == "PMax":
             height=450,
         )
         st.plotly_chart(fig_bar, use_container_width=True)
+
+        section("Tabela szczegółowa")
+        df_table = df_grouped[["Klient","Kanał szczegółowy","Koszt"]].copy()
+        df_table["Koszt"] = df_table["Koszt"].round(0).astype(int)
+        df_table.columns = ["Klient","Kanał","Koszt (zł)"]
+        st.dataframe(df_table, use_container_width=True, hide_index=True)
+        
 
         # ── szczegóły kampanii
         section("Szczegóły kampanii")
