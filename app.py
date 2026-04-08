@@ -687,10 +687,41 @@ elif page == "PMax":
         st.plotly_chart(fig_bar, use_container_width=True)
 
         section("Tabela szczegółowa")
-        df_table = df_grouped[["Klient","Kanał szczegółowy","Koszt"]].copy()
-        df_table["Koszt"] = df_table["Koszt"].round(0).astype(int)
-        df_table.columns = ["Klient","Kanał","Koszt (zł)"]
-        st.dataframe(df_table, use_container_width=True, hide_index=True)
+        df_pivot = df_grouped.pivot_table(
+            index="Klient", columns="Kanał szczegółowy", values="Koszt", fill_value=0
+        ).reset_index()
+        df_pivot = df_pivot.round(0).astype({c: int for c in df_pivot.select_dtypes("number").columns})
+        df_pivot["RAZEM"] = df_pivot.select_dtypes("number").sum(axis=1)
+
+        cols = [c for c in df_pivot.columns if c != "Klient"]
+        html_rows = ""
+        for i, row in df_pivot.iterrows():
+            bg = "#13132a" if i % 2 == 0 else "#0f0f22"
+            cells = f'<td style="padding:18px 20px;font-weight:600;color:#fff;border-right:1px solid #2a2a50;">{row["Klient"]}</td>'
+            for col in cols:
+                color = "#a080ff" if col == "RAZEM" else "#e8e8f5"
+                fw    = "700" if col == "RAZEM" else "400"
+                val   = row.get(col, 0)
+                cells += f'<td style="padding:18px 20px;text-align:right;border-right:1px solid #2a2a50;color:{color};font-weight:{fw};">{val} zł</td>'
+            html_rows += f'<tr style="background:{bg};border-bottom:1px solid #2a2a50;">{cells}</tr>'
+
+        header_cols = "".join([
+            f'<th style="padding:16px 20px;text-align:{"left" if c=="Klient" else "right"};border-bottom:1px solid rgba(255,255,255,0.1);">{c}</th>'
+            for c in ["Klient"] + cols
+        ])
+
+        st.html(f"""
+        <div style="border-radius:16px;overflow:hidden;border:1px solid #2a2a50;box-shadow:0 8px 32px rgba(0,0,0,0.4);">
+        <table style="width:100%;border-collapse:collapse;font-family:'DM Sans',sans-serif;font-size:16px;">
+            <thead>
+                <tr style="background:linear-gradient(135deg,#2c016d,#3337bd);color:rgba(255,255,255,0.7);font-size:11px;letter-spacing:0.18em;text-transform:uppercase;">
+                    {header_cols}
+                </tr>
+            </thead>
+            <tbody>{html_rows}</tbody>
+        </table>
+        </div>
+        """)
         
 
         # ── szczegóły kampanii
